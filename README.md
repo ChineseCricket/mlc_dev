@@ -1,2 +1,2 @@
-# LC-Dev
- Package Development for Micro LC Resonator Design
+# mlc-dev
+PDK for Micro LC Resonator Design
