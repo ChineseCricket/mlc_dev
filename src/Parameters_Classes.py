@@ -20,9 +20,8 @@ class Chip:
         self.LC2LC_x_gap = 1000
         
 class PadClass:
-    
     def __init__(self):
-        self.width = 500
+        self.width = 200
         self.spacing = 300
         
         
@@ -30,20 +29,20 @@ class InductorClass:
 # numLayers : number of etched layers    
     def __init__(self, numLayers):
         self.num_layers = numLayers # number of etched layers
-        self.gap_width = 4 #microns 
-        self.line_width = 4 # microns
-        self.num_turns = 154 # number of turns in coil
-        self.outer_diameter = 3850 # size of inductor
-        self.inductance = 60e-6 # inductance [Henry]
+        self.gap_width = 2 #microns 
+        self.line_width = 2 # microns
+        self.num_turns = 52 # number of turns in coil
+        self.outer_diameter = 664 # size of inductor
+        self.inductance = 3e-6 # inductance [Henry]
         
         if numLayers == 1:
             self.type = "with_pads"
             self.pad_gap = 20
-            self.pad_width = 400
-            self.pad_length = 3850
+            self.pad_width = 100
+            self.pad_length = 248
             self.height = self.pad_width + self.pad_gap +  self.outer_diameter
         else:
-            self.type == "without_pads"
+            self.type = "without_pads"
             self.height = self.outer_diameter
         
 class CapacitorClass:
@@ -54,12 +53,12 @@ class CapacitorClass:
         self.num_layers = numLayers
         if Ctype == "PPC":  # parallel plate capacitor
             #used in parallel plate capacitor -- maybe create this?
-            self.length = 0
-            self.height = 0
+            self.length = 200
+            self.height = 200
         if Ctype == "IDC": #interdigital capacitor
             #used in interdigitated capacitor
-            self.gap_width = 4
-            self.line_width = 4
+            self.gap_width = 2
+            self.line_width = 2
             self.base_height = 100 
             self.width = 100
             self.line_height = 100
