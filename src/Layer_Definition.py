@@ -12,8 +12,9 @@ class LAYER(LayerMap):
     GP: Layer = (1, 0)
     D: Layer = (2, 0)
     # MS: Layer = (3, 0)
-    # Oxide: Layer = (10, 10)
-    Top: Layer = (3, 0)
+    E: Layer = (4, 0)
+    Top: Layer = (5, 0)
+    Top_low: Layer = (6, 0)
 
 LAYER = LAYER()
 
@@ -45,14 +46,35 @@ def get_layer_stack(
                 layer=LAYER.GP,
                 thickness=thickness_M,
                 zmin=0.0,
-                material="Cu",
+                material="Nb",
                 mesh_order=0
+            ),
+            # MetalStrip=LayerLevel(
+            #     layer=LAYER.MS,
+            #     thickness=thickness_M,
+            #     zmin=thickness_M+thickness_D,
+            #     material="Nb",
+            #     mesh_order=2
+            # ),
+            Etched=LayerLevel(
+                layer=LAYER.E,
+                thickness=thickness_D,
+                zmin=thickness_M,
+                material="SiO2",
+                mesh_order=1
             ),
             TopPlane=LayerLevel(
                 layer=LAYER.Top,
                 thickness=thickness_M,
                 zmin=thickness_M+thickness_D,
-                material="Cu",
+                material="Nb",
+                mesh_order=2
+            ),
+            TopPlanelow=LayerLevel(
+                layer=LAYER.Top_low,
+                thickness=thickness_M,
+                zmin=thickness_M,
+                material="Nb",
                 mesh_order=2
             ),
             dielectric=LayerLevel(
