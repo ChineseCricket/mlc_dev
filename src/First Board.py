@@ -1,11 +1,8 @@
-
 # %%
 import gdspy as gf
-
 from Parameters_Classes import *
 from Layer_Definition import *
 from Component_Generator import *
-
 # %%
 # ---------------------- INITIAILIZATION --------------------------
 print("Note: default length unit is microns. \n")
@@ -13,7 +10,7 @@ print("Note: default length unit is microns. \n")
 directory = '../output/'
 filename = 'test.gds'
 fileoutput = directory + filename
-sim = True # True if want to simulate the circuit
+sim = False # True if want to simulate the circuit
 LAYER
 # %%
 try:
@@ -36,4 +33,5 @@ scene.show()
 help(scene)
 # %%
 scene.export('../output/testboard.stl','stl')
+
 # %%
