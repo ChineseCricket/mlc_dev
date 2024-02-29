@@ -68,6 +68,7 @@ def SLGenerator(layer) -> gf.Component:
     CoilPath += [(GPviapin.xmin, GPvia.ymin + via_pad_width/2)] # add small horizontal path 
 
     CoilPath = gf.path.smooth(points=CoilPath, radius=10) # create path object for inductor
+    # CoilPath = gf.Path(CoilPath)
     Coil = LCircuit << gf.path.extrude(CoilPath, layer=layer, width=L.line_width) # extrude path to create inductor
 
     LCircuit.add_port(name='Coilin', center=[0,L.outer_diameter/2], orientation=270, width=L.line_width, layer=layer) # add port to inductor
@@ -125,7 +126,7 @@ def LGenerator(layer) -> gf.Component:
         vp2.xmax = vh2.xmax+tolerance
         vp2.ymax = vh2.ymax+tolerance
 
-        Pad2TL = gf.components.optimal_step(start_width=TL_width, end_width=via_pad_width, num_pts=100, symmetric=True, layer=LAYER.TP).rotate(90)
+        Pad2TL = gf.components.optimal_step(start_width=L.line_width, end_width=via_pad_width, num_pts=100, symmetric=True, layer=LAYER.TP).rotate(90)
 
         pt1 = LCircuit << Pad2TL
         pt1.xmax = vp1.xmax
@@ -139,7 +140,7 @@ def LGenerator(layer) -> gf.Component:
         LCircuit.add_port(name='TL0', port=pt1.ports['e1'])
         LCircuit.add_port(name='TL1', port=pt2.ports['e1'])
         
-        Connecting14 = gf.routing.get_route_electrical(LCircuit.ports["TL0"], LCircuit.ports["TL1"], bend="bend_euler", radius=10, layer=LAYER.TP, width=TL_width)
+        Connecting14 = gf.routing.get_route_electrical(LCircuit.ports["TL0"], LCircuit.ports["TL1"], bend="bend_euler", radius=10, layer=LAYER.TP, width=L.line_width)
         LCircuit.add(Connecting14.references)
 
     return LCircuit

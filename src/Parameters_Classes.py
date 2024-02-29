@@ -33,8 +33,8 @@ class InductorClass:
         self.num_layers = numLayers # number of etched layers
         self.gap_width = 2 #microns 
         self.line_width = 2 # microns
-        self.num_turns = 20 # number of turns in coil
-        self.outer_diameter = 332#664 # size of inductor
+        self.num_turns = 3#20 # number of turns in coil
+        self.outer_diameter = 128#332#664 # size of inductor
         self.inductance = 3e-6 # inductance [Henry]
         
         if numLayers == 1:

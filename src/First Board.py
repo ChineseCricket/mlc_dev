@@ -33,7 +33,7 @@ LCCircuit = LGenerator_sim(3)
 # %%
 LCCircuit
 # %%
-LCCircuit.write_gds("../output/Inductor.gds")
+LCCircuit.write_gds("../output/Inductor_Low.gds")
 # %%
 LAYER_STACK = get_layer_stack()
 layer_stack = LAYER_STACK

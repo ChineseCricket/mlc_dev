@@ -15,3 +15,4 @@ output/Inductor_3D.mph
 *.stp
 output/LGenerator_sim_num_layers3.gds
 output/LGenerator_sim_num_layers3.3mf
+output/Inductor.mph.lock
