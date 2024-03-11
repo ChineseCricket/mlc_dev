@@ -1,5 +1,6 @@
 from gdsfactory.technology import LayerMap, LayerStack, LayerLevel
-# ---------------------- LAYER DEFINITION --------------------------
+
+ # ---------------------- LAYER DEFINITION --------------------------
 Layer = tuple[int, int]
 nm = 1e-3
 
@@ -7,7 +8,8 @@ class LAYER(LayerMap):
     '''
     Generates a LayerMap for LC components.
     '''
-    WAFER: Layer = (99999, 0)
+    WAFER: Layer = (999, 0)
+    Frame: Layer = (99, 0)
 
     GP: Layer = (1, 0)
     D: Layer = (2, 0)

@@ -10,12 +10,11 @@ font_size = 400
 x0 = 0
 y0 = 0
 via_pad_width = 20 # Size of via pads for capacitor and inductor to change metal plane 
-tolerance = 5 # General tolerance
-boundary = BoundaryClass()
-num_layers = 1 # number of layers used in this design
+tolerance = 4 # General tolerance
+num_layers = 3 # number of layers used in this design
 # capacitor_type = "PPC" # type of capacitor (PPC or IDC)
 BoardSize = 500 # size of the board
-Frequency = 1e6 # capacity of the capacitor
+# Frequency = 1e6 # capacity of the capacitor
 
 #WIRING PARAMETERS
 chip = Chip()
@@ -37,8 +36,59 @@ LC = ResonatorClass( LC_height, L.outer_diameter ) # Individual Resonator Parame
 pad = PadClass()
 num_pads = chip.num_LCs
 
+@gf.cell
+def AlignMarker(layer,num_mark) -> gf.Component:
+    '''
+    Create alignment marker.
+    '''
+    # Create a new component
+    Marker = gf.Component()
+    GShape = gf.Component()
+
+    GShape.add_polygon([(-10,10), (-10, 100), (-60, 100), (-60, 120), (60,120), (60,100), (10,100), (10,10)], layer=LAYER.GP)
+    GShape.add_polygon([(-2,195), (-2,240), (-60,240), (-60,260), (60,260), (60,240), (2,240), (2,195)], layer=LAYER.GP)
+    GShape.add_polygon([(-1,335), (-1,380), (-60,380), (-60,400), (60,400), (60,380), (1,380), (1,335)], layer=LAYER.GP)
+    GShape
+
+    S1 = Marker << GShape
+    S2 = Marker << GShape
+    S3 = Marker << GShape
+    S4 = Marker << GShape
+    S2.rotate(90)
+    S3.rotate(180)
+    S4.rotate(270)
+
+    Marker.add_polygon([(0,0), (0,10), (-10,10), (-10,0)], layer=LAYER.GP)
+
+    Text0 = Marker.add_ref(gf.components.text_freetype('Mark '+str(num_mark), size=300, layer=LAYER.GP, font='FangSong'))
+    Text0.movey(-125).movex(705)
+
+    TShape = gf.Component()
+    Inverse = gf.Component()
+
+    TShape.add_polygon([(-10,120), (-10,125), (-30,125), (-30,130), (-60,130), (-60,150), (-2,150), (-2,195), (2,195), (2,150), (60,150), (60,130), (30,130), (30,125), (10,125), (10,120)], layer=layer)
+
+    TShape.add_polygon([(-10,260), (-10,265), (-30,265), (-30,270), (-60,270), (-60,290), (-1,290), (-1,335), (1,335), (1,290), (60,290), (60,270), (30,270), (30,265), (10,265), (10,260)], layer=layer)
+
+    TShape.add_polygon([(20,20), (11,20), (11,35), (12,35), (12,50), (13,50), (13,65), (14,65), (14,80), (15,80), (15,90), (30,90), (30,30), (90,30), (90,15), (80,15), (80,14), (65,14), (65,13), (50,13), (50,12), (35,12), (35,11), (20,11)], layer=layer)
+
+    S5 = Inverse << TShape
+    S6 = Inverse << TShape
+    S7 = Inverse << TShape
+    S8 = Inverse << TShape
+    S6.rotate(90)
+    S7.rotate(180)
+    S8.rotate(270)
+
+    Marker << gf.geometry.invert(Inverse, layer=layer, border=115)
+
+    Text1 = Marker.add_ref(gf.components.text_freetype('Mark '+str(num_mark), size=300, layer=layer, font='FangSong'))
+    Text1.movey(-125).movex(-1545)
+    
+    return Marker
 
 
+@gf.cell
 def SLGenerator(layer) -> gf.Component:
     '''
     Generate singgle L Component for GP layer and SiO2 layer.
@@ -58,23 +108,31 @@ def SLGenerator(layer) -> gf.Component:
         CoilPath += [p1, p2, p3, p4]
 
     i = i + 1
-    GPvia = LCircuit << gf.components.rectangle(size=(via_pad_width, via_pad_width), layer=layer) # via in ground plane layer
-    GPvia.movex(L.outer_diameter - i*pitch - L.line_width - via_pad_width - tolerance).movey(L.outer_diameter - i*pitch - L.line_width - via_pad_width - tolerance) # move via to correct position
-    GPviapin = LCircuit << gf.components.optimal_step(start_width=L.line_width, end_width=via_pad_width, num_pts=100, symmetric=True, layer=layer)
+    L2TL = LCircuit << gf.components.optimal_step(start_width=TL_width, end_width=L.line_width, num_pts=100, layer=layer, anticrowding_factor=0.5).rotate(-90)
+    L2TL.xmin = i*pitch - L.line_width/2
+    L2TL.ymin = i*pitch + 20
+    GPvia = LCircuit << gf.components.rectangle(size=(via_pad_width + tolerance, via_pad_width + tolerance), layer=layer) # via in ground plane layer
+    GPvia.movex(L.outer_diameter/2 - via_pad_width/2 - tolerance/2).movey(L.outer_diameter/2 - via_pad_width/2 - tolerance/2) # move via to correct position
+    GPviapin = LCircuit << gf.components.optimal_step(start_width=TL_width, end_width=via_pad_width + tolerance, num_pts=100, symmetric=True, layer=layer, anticrowding_factor=0.5)
     GPviapin.xmax = GPvia.xmin
     GPviapin.ymin = GPvia.ymin
 
-    CoilPath += [(i*pitch, GPvia.ymin + via_pad_width/2)] # add final near full length up path
-    CoilPath += [(GPviapin.xmin, GPvia.ymin + via_pad_width/2)] # add small horizontal path 
+    CoilPath += [(i*pitch, i*pitch + 20)] # add small vertical line to connect to via
 
     CoilPath = gf.path.smooth(points=CoilPath, radius=10) # create path object for inductor
     # CoilPath = gf.Path(CoilPath)
     Coil = LCircuit << gf.path.extrude(CoilPath, layer=layer, width=L.line_width) # extrude path to create inductor
 
+    LCircuit.add_port(name='via0', port=L2TL.ports['e1'])
+    LCircuit.add_port(name='via1', port=GPviapin.ports['e1'])
+    ViaLine = gf.routing.get_route_electrical(LCircuit.ports["via0"], LCircuit.ports["via1"], bend="bend_euler", radius=10, layer=layer, width=TL_width)
+    LCircuit.add(ViaLine.references)
+
     LCircuit.add_port(name='Coilin', center=[0,L.outer_diameter/2], orientation=270, width=L.line_width, layer=layer) # add port to inductor
 
     return LCircuit
 
+@gf.cell
 def LGenerator(layer) -> gf.Component:
     '''
     Generator multiplied L Component for GP layer and SiO2 layer.
@@ -108,25 +166,24 @@ def LGenerator(layer) -> gf.Component:
         i = L.num_turns
         pitch = L.line_width + L.gap_width
 
-        viahole = gf.components.rectangle(size = (TL_width,TL_width), layer=LAYER.E0)
+        viahole = gf.components.rectangle(size = (via_pad_width - tolerance, via_pad_width - tolerance), layer=LAYER.E0)
 
         vh1 = LCircuit << viahole
-        vh1.movex(L.outer_diameter - i*pitch - L.line_width - via_pad_width).movey(L.outer_diameter - i*pitch - L.line_width - via_pad_width)
-
+        vh1.movex(L.outer_diameter/2 - via_pad_width/2 + tolerance/2).movey(L.outer_diameter/2 - via_pad_width/2 + tolerance/2)
         vh2 = LCircuit << viahole
-        vh2.movex(L.outer_diameter - i*pitch - L.line_width - via_pad_width + L.gap_width).movey(L.outer_diameter - i*pitch - L.line_width - via_pad_width).rotate(-90)
+        vh2.movex(L.outer_diameter/2 - via_pad_width/2 + tolerance/2 + L.gap_width).movey(L.outer_diameter/2 - via_pad_width/2 + tolerance/2).rotate(-90)
 
         viapad = gf.components.rectangle(size = (via_pad_width,via_pad_width), layer=LAYER.TP)
 
         vp1 = LCircuit << viapad
-        vp1.xmax = vh1.xmax+tolerance
-        vp1.ymax = vh1.ymax+tolerance
+        vp1.xmax = vh1.xmax + tolerance/2
+        vp1.ymax = vh1.ymax + tolerance/2
 
         vp2 = LCircuit << viapad
-        vp2.xmax = vh2.xmax+tolerance
-        vp2.ymax = vh2.ymax+tolerance
+        vp2.xmax = vh2.xmax + tolerance/2
+        vp2.ymax = vh2.ymax + tolerance/2
 
-        Pad2TL = gf.components.optimal_step(start_width=L.line_width, end_width=via_pad_width, num_pts=100, symmetric=True, layer=LAYER.TP).rotate(90)
+        Pad2TL = gf.components.optimal_step(start_width=L.line_width, end_width=via_pad_width, num_pts=100, symmetric=True, layer=LAYER.TP, anticrowding_factor=0.5).rotate(90)
 
         pt1 = LCircuit << Pad2TL
         pt1.xmax = vp1.xmax
@@ -143,8 +200,72 @@ def LGenerator(layer) -> gf.Component:
         Connecting14 = gf.routing.get_route_electrical(LCircuit.ports["TL0"], LCircuit.ports["TL1"], bend="bend_euler", radius=10, layer=LAYER.TP, width=L.line_width)
         LCircuit.add(Connecting14.references)
 
+
     return LCircuit
 
+@gf.cell
+def SLGenerator_sim(num_layers) -> gf.Component:
+    '''
+    Generate single L Component for Simulation.
+    '''
+    global L
+    L = InductorClass(num_layers)
+
+    LCircuit = gf.Component()
+    Inductor = LCircuit << SLGenerator(layer=LAYER.GP)
+
+    viahole = gf.components.rectangle(size = (via_pad_width - tolerance, via_pad_width - tolerance), layer=LAYER.E0)
+
+    vh1 = LCircuit << viahole
+    vh1.movex(L.outer_diameter/2 - via_pad_width/2 + tolerance/2).movey(L.outer_diameter/2 - via_pad_width/2 + tolerance/2)
+
+    viapad = gf.components.rectangle(size = (via_pad_width,via_pad_width), layer=LAYER.TP)
+
+    vp1 = LCircuit << viapad
+    vp1.xmax = vh1.xmax + tolerance/2
+    vp1.ymax = vh1.ymax + tolerance/2
+
+    Pad2TL = gf.components.optimal_step(start_width=TL_width, end_width=via_pad_width, num_pts=100, symmetric=True, layer=LAYER.TP, anticrowding_factor=0.75).rotate(90)
+
+    pt1 = LCircuit << Pad2TL
+    pt1.xmax = vp1.xmax
+    pt1.ymax = vp1.ymin
+
+    OutLine = gf.components.rectangle(size=(TL_width, pt1.xmin - LCircuit.xmin + 2*tolerance), layer=LAYER.TP)
+
+    OL1 = LCircuit << OutLine
+    OL1.xmin = pt1.xmin + (via_pad_width-TL_width)/2
+    OL1.ymax = pt1.ymin
+
+    OutPad = gf.components.rectangle(size=(via_pad_width, via_pad_width), layer=LAYER.TP)
+
+    OP1 = LCircuit << OutPad
+    OP1.xmin = OL1.xmin - (via_pad_width-TL_width)/2
+    OP1.ymax = OL1.ymin
+
+    vh2 = LCircuit << viahole
+    vh2.ymax = OP1.ymax - tolerance/2
+    vh2.xmin = -(via_pad_width - tolerance)/2
+
+    vp2 = LCircuit << viapad
+    vp2.xmin = vh2.xmin - tolerance/2
+    vp2.ymax = vh2.ymax + tolerance/2
+
+    gvp2 = LCircuit << gf.components.rectangle(size=(via_pad_width + tolerance, via_pad_width + tolerance), layer=LAYER.GP)
+    gvp2.xmin = vp2.xmin - tolerance/2
+    gvp2.ymax = vp2.ymax + tolerance/2
+
+    gp2L = LCircuit << gf.components.optimal_step(start_width=L.line_width, end_width=via_pad_width + tolerance, num_pts=100, symmetric=True, layer=LAYER.GP, anticrowding_factor=0.75).rotate(-90)
+    gp2L.xmin = gvp2.xmin
+    gp2L.ymin = gvp2.ymax
+
+    LCircuit.add_port(name='gp2L', port=gp2L.ports['e1'])
+    LCircuit.add_port(name='Coil', port=Inductor.ports['Coilin'])
+
+    ConnectingLine = gf.routing.get_route_electrical(LCircuit.ports["gp2L"], LCircuit.ports["Coil"], bend="bend_euler", radius=10, layer=LAYER.GP, width=L.line_width)
+    LCircuit.add(ConnectingLine.references)
+
+    return LCircuit
 
 @gf.cell
 def LGenerator_sim(num_layers) -> gf.Component:
@@ -156,6 +277,62 @@ def LGenerator_sim(num_layers) -> gf.Component:
     
     LCircuit = gf.Component()
     Inductor = LCircuit << LGenerator(layer=LAYER.GP)
+    i = L.num_turns
+    pitch = L.line_width + L.gap_width
+
+    viahole = gf.components.rectangle(size = (via_pad_width - tolerance, via_pad_width - tolerance), layer=LAYER.E0)
+
+    vh1 = LCircuit << viahole
+    vh1.movex(-L.outer_diameter/2 - via_pad_width/2 + tolerance/2 - L.gap_width).movey(L.outer_diameter/2 - via_pad_width/2 + tolerance/2)
+    vh2 = LCircuit << viahole
+    vh2.movex(-L.outer_diameter/2 - via_pad_width/2 + tolerance/2 - L.gap_width).movey(L.outer_diameter/2 - via_pad_width/2 + tolerance/2 + L.gap_width).rotate(90)
+
+    viapad = gf.components.rectangle(size = (via_pad_width,via_pad_width), layer=LAYER.TP)
+
+    vp1 = LCircuit << viapad
+    vp1.xmax = vh1.xmax + tolerance/2
+    vp1.ymax = vh1.ymax + tolerance/2
+
+    vp2 = LCircuit << viapad
+    vp2.xmax = vh2.xmax + tolerance/2
+    vp2.ymax = vh2.ymax + tolerance/2
+
+    Pad2TL = gf.components.optimal_step(start_width=TL_width, end_width=via_pad_width, num_pts=100, symmetric=True, layer=LAYER.TP, anticrowding_factor=0.75)
+
+    pt1 = LCircuit << Pad2TL
+    pt1.xmax = vp1.xmin
+    pt1.ymax = vp1.ymax
+
+    pt2 = LCircuit << Pad2TL
+    pt2
+    pt2.ymin = vp2.ymin
+    pt2.xmax = vp2.xmin
+
+    OutLine = gf.components.rectangle(size=(pt1.xmin - LCircuit.xmin + 2*tolerance, TL_width), layer=LAYER.TP)
+
+    OL1 = LCircuit << OutLine
+    OL1.xmax = pt1.xmin
+    OL1.ymin = pt1.ymin + (via_pad_width-TL_width)/2
+
+    OL2 = LCircuit << OutLine
+    OL2.xmax = pt2.xmin
+    OL2.ymin = pt2.ymin + (via_pad_width-TL_width)/2
+
+    OutPad = gf.components.rectangle(size=(via_pad_width, via_pad_width), layer=LAYER.TP)
+
+    OP1 = LCircuit << OutPad
+    OP1.xmax = OL1.xmin
+    OP1.ymax = OL1.ymax + (via_pad_width-TL_width)/2
+
+    OP2 = LCircuit << OutPad
+    OP2.xmax = OL2.xmin
+    OP2.ymax = OL2.ymax + (via_pad_width-TL_width)/2
+
+    # LCircuit.add_port(name='TL0', port=pt1.ports['e1'])
+    # LCircuit.add_port(name='TL1', port=pt2.ports['e1'])
+    
+    # Connecting14 = gf.routing.get_route_electrical(LCircuit.ports["TL0"], LCircuit.ports["TL1"], bend="bend_euler", radius=10, layer=LAYER.TP, width=L.line_width)
+    # LCircuit.add(Connecting14.references)
     # LCircuit.add_port(name='Coilin', port=Inductor.ports['Coilin'])
 
     # # L wire parameters
@@ -174,6 +351,85 @@ def LGenerator_sim(num_layers) -> gf.Component:
 
     return LCircuit
 
+@gf.cell
+def CGenerator(via_pad_width,capacitor_type,num_layers,Frequency) -> gf.Component:
+    ''' 
+    GENERATE only C CELL.
+    '''
+
+    global C
+    C = CapacitorClass(capacitor_type, num_layers, Frequency)
+    global L
+    L = InductorClass(num_layers)
+
+    #C component
+    CCircuit = gf.Component() # initialize component
+    
+    if C.type == 'IDC':
+        num_lines = C.finger_num
+
+        # calculate size
+        C.width = num_lines * (C.line_width + C.gap_width)
+        C.height = C.base_height * 2 + C.line_height + C.gap_width # total height of capacitor
+
+        # generate base
+        bot = CCircuit << gf.components.rectangle(size=(C.width,C.base_height), layer=LAYER.GP) 
+        top = CCircuit << gf.components.rectangle(size=(C.width,C.base_height), layer=LAYER.GP)
+        top.movey(C.base_height + C.gap_width + C.line_height)
+        botBond = CCircuit << gf.components.rectangle(size=(C.width,C.base_height), layer=LAYER.Bond0)
+
+        # create lines
+        for i in range(num_lines):
+            line = CCircuit << gf.components.rectangle(size=(C.line_width, C.line_height), layer=LAYER.GP)
+            line.xmin = i * (C.line_width + C.gap_width)
+            if i % 2 == 0:
+                line.ymin = C.base_height + C.gap_width
+            else:
+                line.ymin = C.base_height
+        
+        CCircuit.add_port(name='Cin', center=[(CCircuit.xmax+CCircuit.xmin) / 2, CCircuit.ymin], orientation=270, width=TL_width, layer=LAYER.Bond0)
+    
+    elif C.type == 'PPC':
+        CCircuit = gf.Component() # initialize component
+
+        GPlane = CCircuit << gf.components.rectangle((C.length + 2*tolerance,C.length + 2*tolerance), LAYER.GP) # ground plane
+
+        Cpout = CCircuit << gf.components.optimal_step(start_width=TL_width, end_width=via_pad_width, num_pts=100, symmetric=True, layer=LAYER.GP, anticrowding_factor=0.5).rotate(-90)
+        if L.outer_diameter/2 >= C.length/2:
+            Cpout.xmin = GPlane.xmin + C.length/2 - via_pad_width/2
+        else:
+            Cpout.xmin = GPlane.xmin + L.outer_diameter/2 - via_pad_width/2
+        Cpout.ymin = GPlane.ymax
+
+        CCircuit.add_port(name='Cout', port=Cpout.ports['e1'])
+
+        BondPad = CCircuit << gf.components.rectangle((C.length, C.length), LAYER.Bond0) # bonding pad
+        BondPad.movex(tolerance).movey(tolerance)
+
+        TPlane = CCircuit << gf.components.rectangle((C.length, C.length), LAYER.TP) # top plane and dielectric
+        TPlane.movex(tolerance).movey(tolerance)
+
+        Cpin = CCircuit << gf.components.optimal_step(start_width=TL_width-tolerance/2, end_width=via_pad_width, num_pts=100, symmetric=True, layer=LAYER.Bond0, anticrowding_factor=0.5).rotate(90)
+        Cpin.xmin = TPlane.xmin + C.length/2 - via_pad_width/2
+        Cpin.ymax = TPlane.ymin
+
+        CCircuit.add_port(name='Cin', center=[TPlane.xmin + C.length/2, Cpin.ymin], orientation=270, width=TL_width, layer=LAYER.Bond0)
+
+    else:
+        raise KeyError('Invalid Capacitor Type.')
+
+    if num_layers == 3:
+        #create invert layer
+        if capacitor_type == 'PPC':
+            CapacitorTPHole = CCircuit << gf.components.rectangle(size=(C.length - 2*tolerance, C.length - 2*tolerance), layer=LAYER.E0)
+            CapacitorTPHole.xmin = GPlane.xmin + 2*tolerance
+            CapacitorTPHole.ymin = GPlane.ymin + 2*tolerance
+        elif capacitor_type == 'IDC':
+            CapacitorTPHole = CCircuit << gf.components.rectangle(size=(C.width - 2*tolerance, C.base_height - 2*tolerance), layer=LAYER.E0)
+            CapacitorTPHole.xmin = CCircuit.xmin + 2*tolerance
+            CapacitorTPHole.ymin = CCircuit.ymin + 2*tolerance
+    
+    return CCircuit
 
 @gf.cell
 def LCGenerator_sim(via_pad_width,capacitor_type,num_layers) -> gf.Component:
@@ -348,8 +604,6 @@ def LCGenerator_sim(via_pad_width,capacitor_type,num_layers) -> gf.Component:
 
     return LCCircuit
 
-
-
 @gf.cell
 def LCGenerator(via_pad_width,capacitor_type,num_layers) -> gf.Component:
     ''' 
@@ -365,10 +619,9 @@ def LCGenerator(via_pad_width,capacitor_type,num_layers) -> gf.Component:
     CCircuit = gf.Component() # initialize component
     
     if C.type == 'IDC':
-        num_lines = 300
+        num_lines = C.finger_num
 
         # calculate size
-        C.line_height = 2000
         C.width = num_lines * (C.line_width + C.gap_width)
         C.height = C.base_height * 2 + C.line_height + C.gap_width # total height of capacitor
 
@@ -408,7 +661,6 @@ def LCGenerator(via_pad_width,capacitor_type,num_layers) -> gf.Component:
     # collect up
     LCCircuit = gf.Component()
     Inductor = LCCircuit << LGenerator(layer=LAYER.GP)
-    LCCircuit.add_port(name='Coilin', port=Inductor.ports['Coilin'])
     Capacitor = LCCircuit << CCircuit
     
     # alignment and connection
@@ -418,8 +670,8 @@ def LCGenerator(via_pad_width,capacitor_type,num_layers) -> gf.Component:
     ConnectingLine.xmin = Inductor.xmin
     ConnectingLine.ymin = Capacitor.ymax
     LCCircuit.add_port(name='ConnectingLineout', center=[ConnectingLine.xmin + L.line_width/2, ConnectingLine.ymax], orientation=90, width=L.line_width, layer=LAYER.GP)
-    LCconnecting = gf.routing.get_route_electrical(LCCircuit.ports["Coilin"], LCCircuit.ports["ConnectingLineout"], bend="bend_euler", radius=10, layer=LAYER.GP, width=L.line_width)
-    LCCircuit.add(LCconnecting.references)
+    # LCconnecting = gf.routing.get_route_electrical(LCCircuit.ports["Coilin"], LCCircuit.ports["ConnectingLineout"], bend="bend_euler", radius=10, layer=LAYER.GP, width=L.line_width)
+    # LCCircuit.add(LCconnecting.references)
 
     # L wire parameters
     pitch = L.line_width + L.gap_width # define pitch of inductor
@@ -428,13 +680,21 @@ def LCGenerator(via_pad_width,capacitor_type,num_layers) -> gf.Component:
     
     # L wire
     if L.num_layers == 3:
-        ViaPadBond = LCCircuit << gf.components.rectangle(size=(via_pad_width, via_pad_width), layer=LAYER.Bond0) # via pad on Bond layer
-        ViaPadBond.movex(L.outer_diameter - i*pitch - L.line_width - via_pad_width - tolerance).movey(L.outer_diameter - i*pitch - L.line_width - via_pad_width - tolerance)
-        ViaPadBondpin = LCCircuit << gf.components.optimal_step(start_width=TL_width, end_width=via_pad_width, num_pts=100, symmetric=True, layer=LAYER.Bond0).rotate(-90)
-        ViaPadBondpin.xmax = ViaPadBond.xmax
-        ViaPadBondpin.ymin = ViaPadBond.ymax
+        ViaPadBond1 = LCCircuit << gf.components.rectangle(size=(via_pad_width, via_pad_width), layer=LAYER.Bond0) # via pad on Bond layer
+        ViaPadBond1.movex(L.outer_diameter/2 - via_pad_width/2).movey(L.outer_diameter/2 - via_pad_width/2 + L.gap_width).rotate(90)
+        ViaPadBondpin1 = LCCircuit << gf.components.optimal_step(start_width=TL_width, end_width=via_pad_width, num_pts=100, symmetric=True, layer=LAYER.Bond0).rotate(-90)
+        ViaPadBondpin1.xmax = ViaPadBond1.xmax
+        ViaPadBondpin1.ymin = ViaPadBond1.ymax
 
-        LCCircuit.add_port(name='ViaPadBondpin', center=[ViaPadBondpin.xmin + via_pad_width/2, ViaPadBondpin.ymax], orientation=90, width=TL_width, layer=LAYER.Bond0)
+        LCCircuit.add_port(name='ViaPadBondpin1', center=[ViaPadBondpin1.xmin + via_pad_width/2, ViaPadBondpin1.ymax], orientation=90, width=TL_width, layer=LAYER.Bond0)
+
+        ViaPadBond2 = LCCircuit << gf.components.rectangle(size=(via_pad_width, via_pad_width), layer=LAYER.Bond0) # via pad on Bond layer
+        ViaPadBond2.movex(L.outer_diameter/2 - via_pad_width/2 + L.gap_width).movey(L.outer_diameter/2 - via_pad_width/2 + L.gap_width).rotate(180)
+        ViaPadBondpin2 = LCCircuit << gf.components.optimal_step(start_width=TL_width, end_width=via_pad_width, num_pts=100, symmetric=True, layer=LAYER.Bond0).rotate(90)
+        ViaPadBondpin2.xmax = ViaPadBond2.xmax
+        ViaPadBondpin2.ymax = ViaPadBond2.ymin
+
+        LCCircuit.add_port(name='ViaPadBondpin2', center=[ViaPadBondpin2.xmin + via_pad_width/2, ViaPadBondpin2.ymin], orientation=90, width=TL_width, layer=LAYER.Bond0)
     elif L.num_layers == 1:
         pass
     else:
@@ -445,50 +705,50 @@ def LCGenerator(via_pad_width,capacitor_type,num_layers) -> gf.Component:
 
     if num_layers == 3:
         #creat pads
-        OutPad = gf.components.rectangle((pad.width0, pad.width0), layer=LAYER.Bond0)
-        TESPad = gf.components.rectangle((pad.length1, pad.width1), layer=LAYER.Bond0)
+        # OutPad = gf.components.rectangle((pad.width0, pad.width0), layer=LAYER.Bond0)
+        # TESPad = gf.components.rectangle((pad.length1, pad.width1), layer=LAYER.Bond0)
 
-        Bias = LCCircuit << OutPad
-        Bias.xmin = 0
-        Bias.ymax = 3000
-        Biaspin = LCCircuit << gf.components.optimal_step(start_width=TL_width, end_width=pad.width0, num_pts=100, symmetric=True, layer=LAYER.Bond0, anticrowding_factor=0.5).rotate(180)
-        Biaspin.xmin = Bias.xmax
-        Biaspin.ymin = Bias.ymin
-        LCCircuit.add_port(name='Biasout', center=[Biaspin.xmax, Biaspin.ymax - pad.width0/2], orientation=0, width=TL_width, layer=LAYER.Bond0)
+        # Bias = LCCircuit << OutPad
+        # Bias.xmin = 0
+        # Bias.ymax = 3000
+        # Biaspin = LCCircuit << gf.components.optimal_step(start_width=TL_width, end_width=pad.width0, num_pts=100, symmetric=True, layer=LAYER.Bond0, anticrowding_factor=0.5).rotate(180)
+        # Biaspin.xmin = Bias.xmax
+        # Biaspin.ymin = Bias.ymin
+        # LCCircuit.add_port(name='Biasout', center=[Biaspin.xmax, Biaspin.ymax - pad.width0/2], orientation=0, width=TL_width, layer=LAYER.Bond0)
 
-        TESin = LCCircuit << TESPad
-        TESin.xmin = Inductor.xmin - 2*pad.length1
-        # TESin.ymin = Inductor.ymax - pad.width1/2 + 50*tolerance
-        TESinpin = LCCircuit << gf.components.optimal_step(start_width=TL_width, end_width=pad.width1, num_pts=100, symmetric=False, layer=LAYER.Bond0, anticrowding_factor=0.5).rotate(180)
-        TESinpin.xmin = TESin.xmax
-        TESinpin.ymax = TESin.ymax
-        LCCircuit.add_port(name='TESinpin', center=[TESinpin.xmax, TESinpin.ymax - TL_width/2], orientation=0, width=TL_width, layer=LAYER.Bond0)
+        # TESin = LCCircuit << TESPad
+        # TESin.xmin = Inductor.xmin - 2*pad.length1
+        # # TESin.ymin = Inductor.ymax - pad.width1/2 + 50*tolerance
+        # TESinpin = LCCircuit << gf.components.optimal_step(start_width=TL_width, end_width=pad.width1, num_pts=100, symmetric=False, layer=LAYER.Bond0, anticrowding_factor=0.5).rotate(180)
+        # TESinpin.xmin = TESin.xmax
+        # TESinpin.ymax = TESin.ymax
+        # LCCircuit.add_port(name='TESinpin', center=[TESinpin.xmax, TESinpin.ymax - TL_width/2], orientation=0, width=TL_width, layer=LAYER.Bond0)
 
-        TESout = LCCircuit << TESPad
-        TESout.xmin = TESin.xmin
-        TESout.ymin = TESin.ymax + pad.spacing
-        TESoutpin = LCCircuit << gf.components.optimal_step(start_width=pad.width1, end_width=TL_width, num_pts=100, symmetric=False, layer=LAYER.Bond0, anticrowding_factor=0.5)
-        TESoutpin.xmin = TESout.xmax
-        TESoutpin.ymax = TESout.ymax
-        LCCircuit.add_port(name='TESoutPadout', center=[TESoutpin.xmax, TESoutpin.ymin+TL_width/2], orientation=0, width=TL_width, layer=LAYER.Bond0)
+        # TESout = LCCircuit << TESPad
+        # TESout.xmin = TESin.xmin
+        # TESout.ymin = TESin.ymax + pad.spacing
+        # TESoutpin = LCCircuit << gf.components.optimal_step(start_width=pad.width1, end_width=TL_width, num_pts=100, symmetric=False, layer=LAYER.Bond0, anticrowding_factor=0.5)
+        # TESoutpin.xmin = TESout.xmax
+        # TESoutpin.ymax = TESout.ymax
+        # LCCircuit.add_port(name='TESoutPadout', center=[TESoutpin.xmax, TESoutpin.ymin+TL_width/2], orientation=0, width=TL_width, layer=LAYER.Bond0)
 
-        SPad = LCCircuit << OutPad
-        SPad.xmin = 0
-        SPad.ymin = 3050
-        SPadpin = LCCircuit << gf.components.optimal_step(start_width=pad.width0, end_width=TL_width, num_pts=100, symmetric=True, layer=LAYER.Bond0, anticrowding_factor=0.5).rotate(0)
-        SPadpin.xmin = SPad.xmax
-        SPadpin.ymin = SPad.ymin
-        LCCircuit.add_port(name='SPadin', center=[SPadpin.xmax, SPadpin.ymin + pad.width0/2], orientation=0, width=TL_width, layer=LAYER.Bond0)
+        # SPad = LCCircuit << OutPad
+        # SPad.xmin = 0
+        # SPad.ymin = 3050
+        # SPadpin = LCCircuit << gf.components.optimal_step(start_width=pad.width0, end_width=TL_width, num_pts=100, symmetric=True, layer=LAYER.Bond0, anticrowding_factor=0.5).rotate(0)
+        # SPadpin.xmin = SPad.xmax
+        # SPadpin.ymin = SPad.ymin
+        # LCCircuit.add_port(name='SPadin', center=[SPadpin.xmax, SPadpin.ymin + pad.width0/2], orientation=0, width=TL_width, layer=LAYER.Bond0)
         
-        #create wires
-        BiasWire = gf.routing.get_route_electrical(LCCircuit.ports["Biasout"], LCCircuit.ports["Cin"], layer=LAYER.Bond0, with_sbend=True, radius=30, width=TL_width, bend='bend_euler')
-        LCCircuit.add(BiasWire.references)
+        # #create wires
+        # BiasWire = gf.routing.get_route_electrical(LCCircuit.ports["Biasout"], LCCircuit.ports["Cin"], layer=LAYER.Bond0, with_sbend=True, radius=30, width=TL_width, bend='bend_euler')
+        # LCCircuit.add(BiasWire.references)
 
-        TESinWire = gf.routing.get_route_electrical(LCCircuit.ports["TESinpin"], LCCircuit.ports["ViaPadBondpin"], bend="bend_euler", radius = 30, layer=LAYER.Bond0)
-        LCCircuit.add(TESinWire.references)
+        # TESinWire = gf.routing.get_route_electrical(LCCircuit.ports["TESinpin"], LCCircuit.ports["ViaPadBondpin"], bend="bend_euler", radius = 30, layer=LAYER.Bond0)
+        # LCCircuit.add(TESinWire.references)
 
-        GrondRoute = gf.routing.get_route_electrical(LCCircuit.ports["TESoutPadout"], LCCircuit.ports["SPadin"], bend="bend_euler", radius = 30, layer=LAYER.Bond0)
-        LCCircuit.add(GrondRoute.references)
+        # GrondRoute = gf.routing.get_route_electrical(LCCircuit.ports["TESoutPadout"], LCCircuit.ports["SPadin"], bend="bend_euler", radius = 30, layer=LAYER.Bond0)
+        # LCCircuit.add(GrondRoute.references)
 
         #create invert layer
         if capacitor_type == 'PPC':
@@ -499,9 +759,12 @@ def LCGenerator(via_pad_width,capacitor_type,num_layers) -> gf.Component:
             CapacitorTPHole = LCCircuit << gf.components.rectangle(size=(C.width - 2*tolerance, C.base_height - 2*tolerance), layer=LAYER.E0)
             CapacitorTPHole.xmin = Capacitor.xmin + tolerance
             CapacitorTPHole.ymin = Capacitor.ymin + tolerance
-        viahole = LCCircuit << gf.components.rectangle(size=(via_pad_width - tolerance, via_pad_width - tolerance), layer=LAYER.E0)
-        viahole.xmin = ViaPadBond.xmin + tolerance/2
-        viahole.ymin = ViaPadBond.ymin + tolerance/2
+        viahole1 = LCCircuit << gf.components.rectangle(size=(via_pad_width - tolerance, via_pad_width - tolerance), layer=LAYER.E0)
+        viahole1.xmin = ViaPadBond1.xmin + tolerance/2
+        viahole1.ymin = ViaPadBond1.ymin + tolerance/2
+        viahole2 = LCCircuit << gf.components.rectangle(size=(via_pad_width - tolerance, via_pad_width - tolerance), layer=LAYER.E0)
+        viahole2.xmin = ViaPadBond1.xmin + tolerance/2
+        viahole2.ymin = ViaPadBond1.ymin + tolerance/2
         
     
     return LCCircuit
