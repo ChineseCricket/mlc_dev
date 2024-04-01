@@ -13,6 +13,29 @@ filename = 'Inductor.gds'
 fileoutput = directory + filename
 sim = False # True if want to simulate the circuit
 LAYER
+#%%
+# Step 1: Seperate calculated capacitance into 2 parts(1:9)
+## 每块电容左上角的几小块是什么用途？
+# Step 2: Put 2 Capacitors in parallel in a LC cell and leave out proper port for wiring
+# Step 3: Wiring the array with proper pad distribution
+# %%
+try:
+    gf.remove_from_cache(LCCircuit)
+except:
+    pass
+if sim == False:
+    LCCircuit = LCGenerator(via_pad_width,'PPC',3,5e6,[1,9])
+else:
+    LCCircuit = LCGenerator_sim(via_pad_width,'PPC',3)
+# %%
+LCCircuit
+#%%
+C = CGenerator(via_pad_width,'PPC',3,1e6,0.9)
+# %%
+C
+(0.3169-0.3047)/0.3047
+# %%
+C.write_gds("../output/C.gds")
 # %%
 Chip = newCChip(4,via_pad_width,'PPC',3,5,8,
                   [[1e6, 2e6, 3.1e6, 4.1e6, 5e6],
@@ -43,17 +66,6 @@ Chip = newCChip(2,via_pad_width,'PPC',3,5,8,
 Chip
 # %%
 Chip.write_gds("../output/C_array_2inch.gds")
-# %%
-try:
-    gf.remove_from_cache(LCCircuit)
-except:
-    pass
-if sim == False:
-    LCCircuit = LCGenerator(via_pad_width,'PPC',3)
-else:
-    LCCircuit = LCGenerator_sim(via_pad_width,'IDC',3)
-# %%
-LCCircuit
 # %%
 try:
     gf.remove_from_cache(LCCircuit)
@@ -207,5 +219,19 @@ a
 #vertical spacin
 a,b = -(3,4)
 a
-
+# %%
+inductance = 3.2e-5
+Frequency = 1e6
+Cap = 1/(inductance*(2*Frequency*numpy.pi)**2)
+Cap
+# %%
+1/(numpy.sqrt(7.9e-9*3.3e-6)*2*np.pi)
+# %%
+1/(2*np.pi*sqrt(3.3257e-6*2.741951026193102e-10))/1e6
+# %%
+0.02/(0.3*0.3)
+# %%
+3.046612251325669*0.9
+# %%
+3.1722326648538827*0.9
 # %%

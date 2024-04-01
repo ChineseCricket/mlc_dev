@@ -41,7 +41,7 @@ class InductorClass:
         self.line_width = 4#3#3#2 # microns
         self.num_turns = 40#48#40#45 # number of turns in coil
         self.outer_diameter = 785#705#650#500 # size of inductor
-        self.inductance = 3.2e-6 # inductance [Henry]
+        self.inductance = 3.3257e-6 # inductance [Henry]
         
         if numLayers == 1:
             self.type = "with_pads"
@@ -54,22 +54,21 @@ class InductorClass:
             self.height = self.outer_diameter
         
 class CapacitorClass:
-    def __init__(self, Ctype, numLayers, Frequency):
+    def __init__(self, Ctype, numLayers, Frequency,ratio):
     # numLayers : number of etched layers
         self.type = Ctype # save this information
         self.num_layers = numLayers
         if Ctype == "PPC":  # parallel plate capacitor
             #used in parallel plate capacitor -- maybe create this?
-            self.length = CalculatePPCapacitorParameters(Frequency)
-            self.height = self.length
+            self.length = CalculatePPCapacitorParameters(Frequency,ratio)
         if Ctype == "IDC": #interdigital capacitor
             #used in interdigitated capacitor
             self.gap_width = 4
             self.line_width = 4
             self.base_height = 100 
             self.width = 100
-            self.er = 8.5 # dielectric constant, using Silicon = 11.7
-            self.h = 220e-3   # [microns] thickness of substrate
+            self.er = 11.7 # dielectric constant, using Silicon = 11.7
+            self.h = 300  # [microns] thickness of substrate
             self.finger_num, self.line_height = CalculateIDCapacitorParameters(Frequency, self.h, self.line_width, self.er)
             self.height = self.base_height * 2 + self.line_height + self.gap_width # total height of capacitor
             self.small_freq_offset =  0 #6150 - (3850) + 500
@@ -93,26 +92,27 @@ class ArrayClass:
 
 L = InductorClass(1)
 
-def CalculatePPCapacitorParameters(Frequency):
+def CalculatePPCapacitorParameters(Frequency,ratio):
     # calculate the length of the parallel plate capacitor based on the desired capacity.
     # C = epsilon * A / d
     # A = length * length
     # d = 25 nm
     # epsilon = 8.5*8.85e-12
-    # C = 8.5*8.85e-12/25e-9 * length * length
-    # length = sqrt(C / 0.003009)
+    # C = 8.5*8.85e-12/25e-9 * S
+    # S = C / 0.003009
     Capacity = 1/(L.inductance*(2*Frequency*numpy.pi)**2)
-    return numpy.sqrt(Capacity / 0.003009)*1e6 # convert to microns
+    print (Capacity)
+    return numpy.sqrt(ratio*Capacity / 0.003009)*1e6 # change its capacitor to specific ratio and convert its length to microns
 
 def CalculateIDCapacitorParameters(Frequency, h, W, er):
     #Calculate capacitance
     Cap = 1/(L.inductance*(2*Frequency*numpy.pi)**2)# desired capacitance
-    #print("Capacitance = %.2E Farads" %(Cap))        
+    print("Capacitance = %.2E Farads" %(Cap), "Frequency = ", Frequency, "Inductance = ", L.inductance)        
         
     #SELECT LINE WIDTH, HEIGHT AND GAP WIDTH BASED ON FREQUENCY
     f = 0
     line_height_list = [6600,4000,3600,3000,2000,1500,1000]
-    finger_freq_range = [1.8e6,1e9,2e9,3e9,4e9,5e9,6e9,7e9]
+    finger_freq_range = [1.8e6,1e6,2e6,3e6,4e6,5e6,6e6,7e6]
     l_um = line_height_list[0]
     while Frequency > finger_freq_range[f]:
         if Frequency > finger_freq_range[len(finger_freq_range) -1]:
@@ -125,8 +125,11 @@ def CalculateIDCapacitorParameters(Frequency, h, W, er):
     A1 = 4.409 * numpy.tanh( 0.55 * (h/W) ** (0.45)) * 1e-6 # (pF/um)
     A2 = 9.92 * numpy.tanh(0.52 * (h/W) ** (0.5)) * 1e-6   # (pF/um)
 
+    print("A1 = %.2E (pF/um), A2 = %.2E (pF/um)" %(A1, A2))
+
     C_picoF = Cap * 1e12 # go from farad to pico farad
     #C = (er + 1) * l * ( (N-3) * A1 + A2)
+    #?? C = (er + 1) * l * N*(1+gap/W)*( (N-3) * A1 + A2)
     # C / (  (er + 1) * l) = (N-3) * A1 + A2
     # ( C / ( (er + 1) * l ) - A2 ) / A1 = N -3
     # N = 3 + ( C / ( (er + 1) * l ) - A2 ) / A1
