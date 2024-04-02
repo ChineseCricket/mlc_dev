@@ -17,7 +17,8 @@ class Chip:
         #WIRING PARAMETERS
         self.TL_width = 10 # width of transmission line
         self.wire2wire_space = 20 # space between wires
-        self.wiring_gap = 500 # wiring gap for the corners of the chip
+        self.wire_corner_radius = 30 
+        self.sumpad_gap = 100 # wiring gap for the corners of the chip
         self.array_gap_x = 2000 # gap between the array of LCs
         self.array_gap_y = 2000 # gap between the array of LCs
         self.array_column_num = 3 # number of LCs in a column
@@ -88,6 +89,7 @@ class ArrayClass:
         self.column_position = column_position
         self.rotation = rotation
         self.label = label
+        self.note_font_size = 50
 
 
 L = InductorClass(1)

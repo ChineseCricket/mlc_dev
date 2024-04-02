@@ -19,25 +19,52 @@ LAYER
 # Step 2: Put 2 Capacitors in parallel in a LC cell and leave out proper port for wiring
 # Step 3: Wiring the array with proper pad distribution
 # %%
+# %%
+Chip = newChip(newArray,4,'../logo/tsinghua logo large.gds',[(1,1,90),(2,1,90),(2,2,90),(3,1,0),(3,2,0),(3,3,0),(3,4,0),(3,5,0),(3,6,0),(4,1,90),(4,2,90),(5,1,90)],via_pad_width=via_pad_width,Ctype = 'PPC',num_layers = 3,num_column = 5,num_row = 8,Frequencies = 
+                  [[1e6, 2e6, 3.1e6, 4.1e6, 5e6],
+                   [1.8e6, 4.2e6, 2.5e6, 1.7e6, 3.2e6],
+                   [3.3e6, 2.2e6, 4.3e6, 2.9e6, 4.8e6],
+                   [4.9e6, 3.9e6, 1.2e6, 1.9e6, 3.4e6],
+                   [1.3e6, 2.1e6, 4.7e6, 3.5e6, 1.6e6],
+                   [3.6e6, 4.4e6, 1.5e6, 2.3e6, 2.8e6],
+                   [4.0e6, 2.7e6, 3.7e6, 1.4e6, 4.5e6],
+                   [4.6e6, 2.4e6, 3.0e6, 2.6e6, 3.8e6]],
+                   ratio_division = [1,9])
+# %%
+Chip
+# %%
+Array = newArray(via_pad_width,'PPC',3,5,8,
+                  [[1e6, 2e6, 3.1e6, 4.1e6, 5e6],
+                   [1.8e6, 4.2e6, 2.5e6, 1.7e6, 3.2e6],
+                   [3.3e6, 2.2e6, 4.3e6, 2.9e6, 4.8e6],
+                   [4.9e6, 3.9e6, 1.2e6, 1.9e6, 3.4e6],
+                   [1.3e6, 2.1e6, 4.7e6, 3.5e6, 1.6e6],
+                   [3.6e6, 4.4e6, 1.5e6, 2.3e6, 2.8e6],
+                   [4.0e6, 2.7e6, 3.7e6, 1.4e6, 4.5e6],
+                   [4.6e6, 2.4e6, 3.0e6, 2.6e6, 3.8e6]],
+                   [1,9])
+# %%
+Array
+# %%
 try:
     gf.remove_from_cache(LCCircuit)
 except:
     pass
 if sim == False:
-    LCCircuit = LCGenerator(via_pad_width,'PPC',3,5e6,[1,9])
+    LCCircuit = LCGenerator(via_pad_width,'PPC',3,1e6,[1,9])
 else:
     LCCircuit = LCGenerator_sim(via_pad_width,'PPC',3)
 # %%
 LCCircuit
 #%%
-C = CGenerator(via_pad_width,'PPC',3,1e6,0.9)
+C = CGenerator(via_pad_width,'PPC',3,5e6,0.9)
 # %%
 C
 (0.3169-0.3047)/0.3047
 # %%
 C.write_gds("../output/C.gds")
 # %%
-Chip = newCChip(4,via_pad_width,'PPC',3,5,8,
+Chip = newChip(newCArray,4,'../logo/tsinghua logo large.gds',via_pad_width=via_pad_width,Ctype = 'PPC',num_layers = 3,num_column = 5,num_row = 8,Frequencies = 
                   [[1e6, 2e6, 3.1e6, 4.1e6, 5e6],
                    [1.8e6, 4.2e6, 2.5e6, 1.7e6, 3.2e6],
                    [3.3e6, 2.2e6, 4.3e6, 2.9e6, 4.8e6],
@@ -45,14 +72,14 @@ Chip = newCChip(4,via_pad_width,'PPC',3,5,8,
                    [1.3e6, 2.1e6, 4.7e6, 3.5e6, 1.6e6],
                    [3.6e6, 4.4e6, 1.5e6, 2.3e6, 2.8e6],
                    [4.0e6, 2.7e6, 3.7e6, 1.4e6, 4.5e6],
-                   [4.6e6, 2.4e6, 3.0e6, 2.6e6, 3.8e6]],
-                   '../logo/LTD Sign.gds',)
+                   [4.6e6, 2.4e6, 3.0e6, 2.6e6, 3.8e6]]
+                   )
 # %%
 Chip
 # %%
 Chip.write_gds("../output/C_array_4inch_new.gds")
 # %%
-Chip = newCChip(2,via_pad_width,'PPC',3,5,8,
+Chip = newChip(newCArray,2,'../logo/LTD Sign.gds',via_pad_width=via_pad_width,Ctype = 'PPC',num_layers = 3,num_column = 5,num_row = 8,Frequencies = 
                   [[1e6, 2e6, 3.1e6, 4.1e6, 5e6],
                    [1.8e6, 4.2e6, 2.5e6, 1.7e6, 3.2e6],
                    [3.3e6, 2.2e6, 4.3e6, 2.9e6, 4.8e6],
@@ -60,8 +87,8 @@ Chip = newCChip(2,via_pad_width,'PPC',3,5,8,
                    [1.3e6, 2.1e6, 4.7e6, 3.5e6, 1.6e6],
                    [3.6e6, 4.4e6, 1.5e6, 2.3e6, 2.8e6],
                    [4.0e6, 2.7e6, 3.7e6, 1.4e6, 4.5e6],
-                   [4.6e6, 2.4e6, 3.0e6, 2.6e6, 3.8e6]],
-                   '../logo/LTD Sign.gds',)
+                   [4.6e6, 2.4e6, 3.0e6, 2.6e6, 3.8e6]]
+                   )
 # %%
 Chip
 # %%
