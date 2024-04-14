@@ -4,7 +4,6 @@ from Parameters_Classes import *
 from Layer_Definition import *
 from Component_Generator import *
 from Chip_Generator import *
-# %%
 # ---------------------- INITIAILIZATION --------------------------
 print("Note: default length unit is microns. \n")
 # Output location for gds file
@@ -13,14 +12,7 @@ filename = 'Inductor.gds'
 fileoutput = directory + filename
 sim = False # True if want to simulate the circuit
 LAYER
-#%%
-# Step 1: Seperate calculated capacitance into 2 parts(1:9)
-## 每块电容左上角的几小块是什么用途？
-# Step 2: Put 2 Capacitors in parallel in a LC cell and leave out proper port for wiring
-# Step 3: Wiring the array with proper pad distribution
-# %%
-# %%
-Chip = newChip(newArray,4,'../logo/tsinghua logo large.gds',[(1,1,90),(2,1,90),(2,2,90),(3,1,0),(3,2,0),(3,3,0),(3,4,0),(3,5,0),(3,6,0),(4,1,90),(4,2,90),(5,1,90)],via_pad_width=via_pad_width,Ctype = 'PPC',num_layers = 3,num_column = 5,num_row = 8,Frequencies = 
+Chip1 = newChip(newArray,4,'../logo/tsinghua logo large.gds',[(1,1,90),(2,1,90),(2,2,90),(3,1,0),(3,2,0),(3,3,0),(3,4,0),(3,5,0),(3,6,0),(4,1,90),(4,2,90),(5,1,90)],via_pad_width=via_pad_width,Ctype = 'PPC',num_layers = 3,num_column = 5,num_row = 8,Frequencies = 
                   [[1e6, 2e6, 3.1e6, 4.1e6, 5e6],
                    [1.8e6, 4.2e6, 2.5e6, 1.7e6, 3.2e6],
                    [3.3e6, 2.2e6, 4.3e6, 2.9e6, 4.8e6],
@@ -30,8 +22,34 @@ Chip = newChip(newArray,4,'../logo/tsinghua logo large.gds',[(1,1,90),(2,1,90),(
                    [4.0e6, 2.7e6, 3.7e6, 1.4e6, 4.5e6],
                    [4.6e6, 2.4e6, 3.0e6, 2.6e6, 3.8e6]],
                    ratio_division = [1,9])
-# %%
-Chip
+Chip1
+Chip1.write_gds("../output/LC_array_4inch_with_votage_division.gds")
+#%%
+import gdsfactory as gf
+from Parameters_Classes import *
+from Layer_Definition import *
+from Component_Generator import *
+from Chip_Generator import *
+# ---------------------- INITIAILIZATION --------------------------
+print("Note: default length unit is microns. \n")
+# Output location for gds file
+directory = '../output/'
+filename = 'Inductor.gds'
+fileoutput = directory + filename
+sim = False # True if want to simulate the circuit
+LAYER
+Chip2 = newChip(newArray,4,'../logo/tsinghua logo large.gds',[(1,1,90),(2,1,90),(2,2,90),(3,1,0),(3,2,0),(3,3,0),(3,4,0),(3,5,0),(3,6,0),(4,1,90),(4,2,90),(5,1,90)],via_pad_width=via_pad_width,Ctype = 'PPC',num_layers = 3,num_column = 5,num_row = 8,Frequencies = 
+                  [[1e6, 2e6, 3.1e6, 4.1e6, 5e6],
+                   [1.8e6, 4.2e6, 2.5e6, 1.7e6, 3.2e6],
+                   [3.3e6, 2.2e6, 4.3e6, 2.9e6, 4.8e6],
+                   [4.9e6, 3.9e6, 1.2e6, 1.9e6, 3.4e6],
+                   [1.3e6, 2.1e6, 4.7e6, 3.5e6, 1.6e6],
+                   [3.6e6, 4.4e6, 1.5e6, 2.3e6, 2.8e6],
+                   [4.0e6, 2.7e6, 3.7e6, 1.4e6, 4.5e6],
+                   [4.6e6, 2.4e6, 3.0e6, 2.6e6, 3.8e6]],
+                   ratio_division = None, inverse=True, InverseArrayPath='../output/Array_without_voltage_division_inverse.gds')
+Chip2
+Chip2.write_gds("../output/LC_array_4inch_without_votage_division_inverseGP.gds")
 # %%
 Array = newArray(via_pad_width,'PPC',3,5,8,
                   [[1e6, 2e6, 3.1e6, 4.1e6, 5e6],
@@ -42,7 +60,7 @@ Array = newArray(via_pad_width,'PPC',3,5,8,
                    [3.6e6, 4.4e6, 1.5e6, 2.3e6, 2.8e6],
                    [4.0e6, 2.7e6, 3.7e6, 1.4e6, 4.5e6],
                    [4.6e6, 2.4e6, 3.0e6, 2.6e6, 3.8e6]],
-                   [1,9])
+                   None)
 # %%
 Array
 # %%
@@ -51,7 +69,7 @@ try:
 except:
     pass
 if sim == False:
-    LCCircuit = LCGenerator(via_pad_width,'PPC',3,1e6,[1,9])
+    LCCircuit = LCGenerator(via_pad_width,'PPC',3,4e6,None)
 else:
     LCCircuit = LCGenerator_sim(via_pad_width,'PPC',3)
 # %%
@@ -261,4 +279,99 @@ Cap
 3.046612251325669*0.9
 # %%
 3.1722326648538827*0.9
+# %%
+import numpy as np
+# %%
+A = np.array([1,2])
+B = np.array([2,2])
+A < B
+# %%
+1-A
+# %%
+gf.components
+# %%
+A = gf.components.circle(10,layer = LAYER.WAFER)
+Rs = gf.Component()
+B = Rs << gf.components.rectangle(size = (4,3), layer=LAYER.GP)
+C = Rs << gf.components.rectangle(size = (2,4), layer = LAYER.TP)
+# %%
+C = gf.geometry.boolean(A,Rs.extract([LAYER.GP]),'A-B',layer=LAYER.GP)
+# %%
+C
+# %%
+Rs.get_polygons(by_spec=LAYER.GP)
+# %%
+Rs.extract([LAYER.GP])
+# %%
+# %%
+import gdsfactory as gf
+from Parameters_Classes import *
+from Layer_Definition import *
+from Component_Generator import *
+from Chip_Generator import *
+# ---------------------- INITIAILIZATION --------------------------
+print("Note: default length unit is microns. \n")
+# Output location for gds file
+directory = '../output/'
+filename = 'Inductor.gds'
+fileoutput = directory + filename
+sim = False # True if want to simulate the circuit
+LAYER
+# Chip1 = newChip(newArray,4,'../logo/tsinghua logo large.gds',[(1,1,90),(2,1,0),(2,2,0),(3,1,90)],via_pad_width=via_pad_width,Ctype = 'PPC',num_layers = 3,num_column = 5,num_row = 8,Frequencies =   [[1e6, 2e6, 3.1e6, 4.1e6, 5e6],
+#                    [1.8e6, 4.2e6, 2.5e6, 1.7e6, 3.2e6],
+#                    [3.3e6, 2.2e6, 4.3e6, 2.9e6, 4.8e6],
+#                    [4.9e6, 3.9e6, 1.2e6, 1.9e6, 3.4e6],
+#                    [1.3e6, 2.1e6, 4.7e6, 3.5e6, 1.6e6],
+#                    [3.6e6, 4.4e6, 1.5e6, 2.3e6, 2.8e6],
+#                    [4.0e6, 2.7e6, 3.7e6, 1.4e6, 4.5e6],
+#                    [4.6e6, 2.4e6, 3.0e6, 2.6e6, 3.8e6]],
+#                    ratio_division = [1,9],inverse=False)
+# Chip1
+# %%
+gf.geometry.boolean(Chip1.extract([LAYER.WAFER]),Chip1.extract([LAYER.Bond0]),'A-B',layer = (1,0))
+# %%
+S = gf.geometry.boolean_polygons(Chip1.extract([LAYER.WAFER]),Chip1.extract([LAYER.Bond0]),'not',output_layer = (1,0))
+# %%
+S[1].show
+# %%
+Array = newArray(via_pad_width,'PPC',3,5,8,
+                  [[1e6, 2e6, 3.1e6, 4.1e6, 5e6],
+                   [1.8e6, 4.2e6, 2.5e6, 1.7e6, 3.2e6],
+                   [3.3e6, 2.2e6, 4.3e6, 2.9e6, 4.8e6],
+                   [4.9e6, 3.9e6, 1.2e6, 1.9e6, 3.4e6],
+                   [1.3e6, 2.1e6, 4.7e6, 3.5e6, 1.6e6],
+                   [3.6e6, 4.4e6, 1.5e6, 2.3e6, 2.8e6],
+                   [4.0e6, 2.7e6, 3.7e6, 1.4e6, 4.5e6],
+                   [4.6e6, 2.4e6, 3.0e6, 2.6e6, 3.8e6]],
+                   None)
+Array
+# %%
+Test = gf.Component()
+Array = Test << Array
+# %%
+Wafer = Test << gf.components.rectangle(size = (Array.xsize, Array.ysize), layer = (999,0))
+Wafer.xmin = Array.xmin
+Wafer.ymin = Array.ymin
+# %%
+Test
+# %%
+S = gf.geometry.boolean(Test.extract([LAYER.WAFER]),Test,'not',layer = (1,0))
+# %%
+S
+# %%
+gf.remove_from_cache(S)
+# %%
+A = np.array([[1e6, 2e6, 3.1e6, 4.1e6, 5e6],
+                   [1.8e6, 4.2e6, 2.5e6, 1.7e6, 3.2e6],
+                   [3.3e6, 2.2e6, 4.3e6, 2.9e6, 4.8e6],
+                   [4.9e6, 3.9e6, 1.2e6, 1.9e6, 3.4e6],
+                   [1.3e6, 2.1e6, 4.7e6, 3.5e6, 1.6e6],
+                   [3.6e6, 4.4e6, 1.5e6, 2.3e6, 2.8e6],
+                   [4.0e6, 2.7e6, 3.7e6, 1.4e6, 4.5e6],
+                   [4.6e6, 2.4e6, 3.0e6, 2.6e6, 3.8e6]]).flatten()
+A.sort()
+# %%
+print(A)
+# %%
+32/123
 # %%

@@ -191,234 +191,414 @@ def newArray(via_pad_width,Ctype,num_layers,num_column,num_row,Frequencies,ratio
     '''
     Creates a new array of LCs.
     '''
-    # Create a new component
-    Array = gf.Component()
-    Class_Array = ArrayClass(0,0,0)
-    
-    # Create frame of LCs
-    SingleCell = gf.components.rectangle(size=(chip.CellWidth, chip.CellHeight), layer=LAYER.Frame)
-    CellFrame = Array.add_array(SingleCell, columns=num_column, rows=num_row, spacing=[chip.CellWidth, chip.CellHeight])
-    print('Frame created')
-
-    # Create Pads
-    Space_Pad = chip.CellHeight*num_row/(num_column*num_row)
-    
-    TPad = gf.Component()
-    TPadself = TPad << gf.components.rectangle(size=(pad.width0, pad.width0/2), layer=LAYER.Bond0)
-    TPadin = TPad << gf.components.optimal_step(start_width=pad.width0/2, end_width=TL_width-tolerance/2, num_pts=100, layer=LAYER.Bond0, anticrowding_factor=0.1)
-    TPadin.xmin = TPadself.xmax
-    
-    GPad = gf.Component()
-    GPadself = GPad << gf.components.rectangle(size=(pad.width0, pad.width0/2), layer=LAYER.GP)
-    GPadin = GPad << gf.components.optimal_step(start_width=TL_width, end_width=pad.width0/2, num_pts=100, layer=LAYER.GP, anticrowding_factor=0.1).rotate(180)
-    GPadin.xmin = GPadself.xmax
-    GPadin.ymin = GPadself.ymin
-    
-    # Add Sum Pads
-    SumPad1 = Array << gf.components.nxn(east=num_pads, west=0, south=0, north=0, ysize=(num_pads*2-1)*TL_width - tolerance/2, xsize=pad.length1, layer=LAYER.Bond0, wg_width=TL_width - tolerance/2, wg_margin=0)
-    SumPad1.ymin = num_row*chip.CellHeight + num_pads*2*TL_width + chip.wire_corner_radius
-    Array.add_ports(SumPad1.ports,prefix='SumPad1')
-
-    SumPad2 = Array << gf.components.nxn(east=num_pads, west=0, south=0, north=0, ysize=(num_pads*2-1)*TL_width+tolerance/2, xsize=pad.length1+tolerance, layer=LAYER.GP, wg_width=TL_width, wg_margin=tolerance/4)
-    SumPad2.ymin = SumPad1.ymin - tolerance/2
-    SumPad2.xmin = SumPad1.xmin - tolerance/2
-    Array.add_ports(SumPad2.ports,prefix='SumPad2')
-
-    SumPad3 = Array << gf.components.nxn(south=num_pads, west=0, east=0, north=0, xsize=(num_pads*2-1)*TL_width, ysize=pad.length1, layer=LAYER.GP, wg_width=TL_width, wg_margin=0)
-    SumPad3.ymax = SumPad2.ymin - chip.sumpad_gap - (pad.width0 + chip.wire_corner_radius/2 - SumPad1.ysize/2)
-    SumPad3.xmax = - 10*TL_width
-    Array.add_ports(SumPad3.ports,prefix='SumPad3')
-
-    # Add SQIUD Pad and GND Pad
-    BiasPad = Array << gf.components.rectangle(size=(pad.width0, pad.width0), layer=LAYER.GP)
-    BiasPad.ymin = SumPad1.ymin - (pad.width0 + chip.wire_corner_radius/2 - SumPad1.ysize/2)
-
-    GndPad = Array << gf.components.rectangle(size=(pad.width0, pad.width0), layer=LAYER.Bond0)
-    GndPad.ymin = BiasPad.ymax + chip.wire_corner_radius
-
-    SquidPad = Array << gf.components.rectangle(size=(pad.width0, pad.width0), layer=LAYER.GP)
-    SquidPad.ymax = SumPad3.ymax
-
-    print('Pads created')
-
-    # Create Array
-    LCs = []
-    TPads = []
-    GPads = []
-    R = [0 for i in range(num_row)]
-    for j in range(num_row):
-        # Create LCs
-        R[j] = gf.Component()
-        for i in range(num_column):
-            LCs.append(R[j].add_ref(LCGenerator(via_pad_width,Ctype,num_layers,Frequencies[num_row-j-1][i],ratio_division)))
-            # LC.movex(L.outer_diameter)
-            LCs[5*j+i].xmin = i*chip.CellWidth
-            LCs[5*j+i].ymax = (j+1)*chip.CellHeight - num_column*2*TL_width - chip.wire_corner_radius
-            R[j].add_port(name = 'Lin'+str(j)+str(i), port = LCs[5*j+i].ports['Lin'])
-            R[j].add_port(name = 'FCout'+str(j)+str(i), port = LCs[5*j+i].ports['FCout'])
-            R[j].add_port(name = 'CCout'+str(j)+str(i), port = LCs[5*j+i].ports['CCin'])
-        Array << R[j]
-
-        # Create Pads Arrays
-        TPads.append(Array.add_array(TPad, columns=1, rows=num_column, spacing=[0,Space_Pad]))
-        TPads[j].xmax = CellFrame.xmin - TL_width*2*num_pads - 10*TL_width - chip.wire_corner_radius - TL_width/2
-        TPads[j].ymin = CellFrame.ymin + j*chip.CellHeight + pad.width0/2 + 100
-        for i in range(num_column): # Add ports to pads
-            Array.add_port(name = 'TPad' + str(j) + str(i), center=(TPads[j].xmax, TPads[j].ymax - i*Space_Pad - pad.width0/2 - tolerance/4 + TL_width/2), width=TL_width-tolerance/2, orientation=0, layer=LAYER.Bond0)
+    if ratio_division == None:
+        # Create a new component
+        Array = gf.Component()
+        Class_Array = ArrayClass(0,0,0)
         
-        GPads.append(Array.add_array(GPad, columns=1, rows=num_column, spacing=[0,Space_Pad]))
-        GPads[j].xmax = CellFrame.xmin - TL_width*2*num_pads - 10*TL_width - chip.wire_corner_radius - TL_width/2
-        GPads[j].ymin = CellFrame.ymin + j*chip.CellHeight
-        for i in range(num_column): # Add ports to pads
-            Array.add_port(name = 'GPad' + str(j) + str(i), center=(GPads[j].xmax, GPads[j].ymax - i*Space_Pad - TL_width/2), width=TL_width, orientation=0, layer=LAYER.GP)
-        
-        # Routing to Pads
-        RLroutes = gf.routing.get_bundle_from_steps([x[1] for x in Array.ports.items() if x[0].startswith('TPad'+str(j)) ], [x[1] for x in R[j].ports.items() if x[0].startswith('Lin'+str(j))], bend = 'bend_euler', radius = chip.wire_corner_radius, width = TL_width-tolerance/2, layer = LAYER.Bond0, separation=TL_width*2,
-            steps=[
-                {"dx": num_pads*TL_width*2+chip.wire_corner_radius, "dy": 0},
-                {"dx": 0, "y":R[j].ymax + chip.wire_corner_radius},
-                {"x":R[j].ports['Lin'+str(j)+'0'].center[0], "dy":0},
-            ],
-        )
-        for route in RLroutes:
-            Array.add(route.references)
-        
-        CGroutes = gf.routing.get_bundle_from_steps([x[1] for x in Array.ports.items() if x[0] in ['SumPad1o'+str(j*num_column+1+i) for i in range(num_column)]], [x[1] for x in R[j].ports.items() if x[0].startswith('FCout'+str(j))], bend = 'bend_euler', radius = chip.wire_corner_radius, width = TL_width-tolerance/2, layer = LAYER.Bond0, separation=TL_width*2,
-            steps=[
-                {"x": R[j].xmax + (num_pads-j*num_column+1-.75)*TL_width*2, "dy": 0},
-                {"dx": 0, "y": R[j].ymin - chip.wire_corner_radius},
-                {"x": R[j].ports['FCout'+str(j)+'0'].center[0], "dy": 0},
-            ],
-        ) #bundle 函数以最右侧线的中线算位置
-        for route in CGroutes:
-            Array.add(route.references)
+        # Create frame of LCs
+        SingleCell = gf.components.rectangle(size=(chip.CellWidth, chip.CellHeight), layer=LAYER.Frame)
+        CellFrame = Array.add_array(SingleCell, columns=num_column, rows=num_row, spacing=[chip.CellWidth, chip.CellHeight])
+        print('Frame created')
 
-        CBroutes = []
-        for i in range(num_column-1):
+        # Create Pads
+        Space_Pad = chip.CellHeight*num_row/(num_column*num_row)
+        
+        TPad = gf.Component()
+        TPadself = TPad << gf.components.rectangle(size=(pad.width0, pad.width0/2), layer=LAYER.Bond0)
+        TPadin = TPad << gf.components.optimal_step(start_width=pad.width0/2, end_width=TL_width-tolerance/2, num_pts=100, layer=LAYER.Bond0, anticrowding_factor=0.1)
+        TPadin.xmin = TPadself.xmax
+        
+        GPad = gf.Component()
+        GPadself = GPad << gf.components.rectangle(size=(pad.width0, pad.width0/2), layer=LAYER.GP)
+        GPadin = GPad << gf.components.optimal_step(start_width=TL_width, end_width=pad.width0/2, num_pts=100, layer=LAYER.GP, anticrowding_factor=0.1).rotate(180)
+        GPadin.xmin = GPadself.xmax
+        GPadin.ymin = GPadself.ymin
+        
+        # Add Sum Pads
+        SumPad1 = Array << gf.components.nxn(east=num_pads, west=0, south=0, north=0, ysize=(num_pads*2-1)*TL_width - tolerance/2, xsize=pad.length1, layer=LAYER.Bond0, wg_width=TL_width - tolerance/2, wg_margin=0)
+        SumPad1.ymin = num_row*chip.CellHeight + 2*chip.wire_corner_radius
+        Array.add_ports(SumPad1.ports,prefix='SumPad1')
+
+        SumPad2 = Array << gf.components.nxn(east=num_pads, west=0, south=0, north=0, ysize=(num_pads*2-1)*TL_width+tolerance/2, xsize=pad.length1+tolerance, layer=LAYER.GP, wg_width=TL_width, wg_margin=tolerance/4)
+        SumPad2.ymin = SumPad1.ymin - tolerance/2
+        SumPad2.xmin = SumPad1.xmin - tolerance/2
+        Array.add_ports(SumPad2.ports,prefix='SumPad2')
+
+        # Add SQIUD Pad and GND Pad
+        SquidPad = Array << gf.components.rectangle(size=(pad.width0, pad.width0), layer=LAYER.GP)
+        SquidPad.ymin = SumPad1.ymin - (pad.width0 + chip.wire_corner_radius/2 - SumPad1.ysize/2)
+
+        BiasPad = Array << gf.components.rectangle(size=(pad.width0, pad.width0), layer=LAYER.Bond0)
+        BiasPad.ymin = SquidPad.ymax + chip.wire_corner_radius
+
+        print('Pads created')
+
+        # Create Array
+        LCs = []
+        TPads = []
+        GPads = []
+        R = [0 for i in range(num_row)]
+        for j in range(num_row):
+            # Create LCs
+            R[j] = gf.Component()
+            for i in range(num_column):
+                LCs.append(R[j].add_ref(LCGenerator(via_pad_width,Ctype,num_layers,Frequencies[num_row-j-1][i],ratio_division)))
+                # LC.movex(L.outer_diameter)
+                LCs[5*j+i].xmin = i*chip.CellWidth
+                LCs[5*j+i].ymax = (j+1)*chip.CellHeight - num_column*2*TL_width - chip.wire_corner_radius
+                R[j].add_port(name = 'Lin'+str(j)+str(i), port = LCs[5*j+i].ports['Lin'])
+                R[j].add_port(name = 'FCout'+str(j)+str(i), port = LCs[5*j+i].ports['FCout'])
+            Array << R[j]
+
+            # Create Pads Arrays
+            TPads.append(Array.add_array(TPad, columns=1, rows=num_column, spacing=[0,Space_Pad]))
+            TPads[j].xmax = CellFrame.xmin - TL_width*2*num_column - 10*TL_width - chip.wire_corner_radius - TL_width/2
+            TPads[j].ymin = CellFrame.ymin + j*chip.CellHeight + pad.width0/2 + chip.wire_corner_radius
+            for i in range(num_column): # Add ports to pads
+                Array.add_port(name = 'TPad' + str(j) + str(i), center=(TPads[j].xmax, TPads[j].ymax - i*Space_Pad - pad.width0/2 - tolerance/4 + TL_width/2), width=TL_width-tolerance/2, orientation=0, layer=LAYER.Bond0)
+            
+            GPads.append(Array.add_array(GPad, columns=1, rows=num_column, spacing=[0,Space_Pad]))
+            GPads[j].xmax = CellFrame.xmin - TL_width*2*num_column - 10*TL_width - chip.wire_corner_radius - TL_width/2
+            GPads[j].ymin = CellFrame.ymin + j*chip.CellHeight
+            for i in range(num_column): # Add ports to pads
+                Array.add_port(name = 'GPad' + str(j) + str(i), center=(GPads[j].xmax, GPads[j].ymax - i*Space_Pad - TL_width/2), width=TL_width, orientation=0, layer=LAYER.GP)
+            
+            # Routing to Pads
+            RLroutes = gf.routing.get_bundle_from_steps([x[1] for x in Array.ports.items() if x[0].startswith('TPad'+str(j)) ], [x[1] for x in R[j].ports.items() if x[0].startswith('Lin'+str(j))], bend = 'bend_euler', radius = chip.wire_corner_radius, width = TL_width-tolerance/2, layer = LAYER.Bond0, separation=TL_width*2,
+                steps=[
+                    {"dx": num_column*TL_width*2+chip.wire_corner_radius, "dy": 0},
+                    {"dx": 0, "y": R[j].ymax + chip.wire_corner_radius + TL_width/2},
+                    {"x": R[j].ports['Lin'+str(j)+'0'].center[0], "dy": 0},
+                ],
+            )
+            for route in RLroutes:
+                Array.add(route.references)
+            
+            CBroutes = gf.routing.get_bundle_from_steps([x[1] for x in Array.ports.items() if x[0] in ['SumPad1o'+str(j*num_column+1+i) for i in range(num_column)]], [x[1] for x in R[j].ports.items() if x[0].startswith('FCout'+str(j))], bend = 'bend_euler', radius = chip.wire_corner_radius, width = TL_width-tolerance/2, layer = LAYER.Bond0, separation=TL_width*2,
+                steps=[
+                    {"x": R[j].xmax + (num_pads-j*num_column+1-.75)*TL_width*2, "dy": 0},
+                    {"dx": 0, "y": R[j].ymin - chip.wire_corner_radius},
+                    {"x": R[j].ports['FCout'+str(j)+'0'].center[0], "dy": 0},
+                ],
+            ) #bundle 函数以最右侧线的中线算位置
+            for route in CBroutes:
+                Array.add(route.references)
+
+            RSroutes = gf.routing.get_bundle_from_steps([x[1] for x in Array.ports.items() if x[0] in ['SumPad2o'+str(j*num_column+1+i) for i in range(num_column)]], [x[1] for x in Array.ports.items() if x[0].startswith('GPad'+str(j))], bend = 'bend_euler', radius = chip.wire_corner_radius, width = TL_width, layer = LAYER.GP, separation=TL_width*2,
+                steps=[
+                    {"x": R[j].xmax + (num_pads-j*num_column+1-.75)*TL_width*2, "dy": 0},
+                    {"dx": 0, "y":R[j].ymax + chip.wire_corner_radius + (num_column*2-1.5)*TL_width},#这里以最下侧线为标准
+                    {"x": R[j].xmin - (5+num_column-.75)*2*TL_width, "dy": 0},#这里又变成最左侧线了
+                    {"dx": 0, "y": Array.ports['GPad'+str(j)+'0'].center[1]},
+                ])
+            for route in RSroutes:
+                Array.add(route.references)
+        
+        # Correct the position of GND and Squid Pads and wire them to Sumpads
+        SquidPad.xmin = GPads[0].xmin
+        BiasPad.xmin = GPads[0].xmin
+
+        BiasWire1 = Array.add_polygon([(BiasPad.xmax, SumPad1.ymax), (SumPad1.xmin, SumPad1.ymax), (SumPad1.xmin, BiasPad.ymin), (BiasPad.xmax, BiasPad.ymin)], layer=LAYER.Bond0)
+        SquidWire1 = Array.add_polygon([(SquidPad.xmax, SquidPad.ymax), (SumPad2.xmin, SquidPad.ymax), (SumPad2.xmin, SumPad2.ymin), (SquidPad.xmax, SumPad2.ymin)], layer=LAYER.GP)
+        
+        # Add Bonding Pads and Holes for GPads, BiasPad and SquidPad
+        GPadhole = gf.components.rectangle(size=(pad.width0 - 2*tolerance, pad.width0/2 - 2*tolerance), layer=LAYER.E0)
+        GPadholes = Array.add_array(GPadhole, columns=1, rows=num_pads, spacing=[0,Space_Pad])
+        GPadholes.ymin = GPads[0].ymin + tolerance
+        GPadholes.xmin = GPads[0].xmin + tolerance
+
+        GPadBondings = Array.add_array(gf.components.rectangle(size=(pad.width0 - tolerance, pad.width0/2 - tolerance), layer=LAYER.Bond0), columns=1, rows=num_pads, spacing=[0,Space_Pad])
+        GPadBondings.ymin = GPads[0].ymin + tolerance/2
+        GPadBondings.xmin = GPads[0].xmin + tolerance/2
+
+        SquidPadhole = Array << gf.components.rectangle(size=(pad.width0 - 2*tolerance, pad.width0 - 2*tolerance), layer=LAYER.E0)
+        SquidPadhole.ymax = SquidPad.ymax - tolerance
+        SquidPadhole.xmin = SquidPad.xmin + tolerance
+
+        SquidPadBonding = Array << gf.components.rectangle(size=(pad.width0 - tolerance, pad.width0 - tolerance), layer=LAYER.Bond0)
+        SquidPadBonding.ymax = SquidPad.ymax - tolerance/2
+        SquidPadBonding.xmin = SquidPad.xmin + tolerance/2
+
+        # Create etched edge for array
+        Edge = Array << gf.geometry.outline(gf.components.rectangle(size=(Array.xsize + 250, Array.ysize + 250)), distance=75, layer=LAYER.E0)
+        Edge.xmin = Array.xmin - 200
+        Edge.ymin = Array.ymin - 200
+
+        Coner = gf.Component()
+        Coner.add_polygon([(0,0), (50,0), (50,450), (500,450), (500,500), (0,500)], layer=LAYER.GP)
+        
+        C1 = Array << Coner
+        C2 = Array << Coner
+        C3 = Array << Coner
+        C4 = Array << Coner
+
+        C1.xmin = Edge.xmin + 25
+        C1.ymax = Edge.ymax - 25
+        C2.rotate(-90)
+        C2.xmax = Edge.xmax - 25
+        C2.ymax = Edge.ymax - 25
+        C3.rotate(90)
+        C3.xmin = Edge.xmin + 25
+        C3.ymin = Edge.ymin + 25
+        C4.rotate(180)
+        C4.xmax = Edge.xmax - 25
+        C4.ymin = Edge.ymin + 25
+
+        EdgeCenterY = gf.components.rectangle(size = (50, Array.ysize/20), layer=LAYER.GP)
+        EdgeCenterX = gf.components.rectangle(size = (Array.xsize/20, 50), layer=LAYER.GP)
+        
+        EY1 = Array << EdgeCenterY
+        EY2 = Array << EdgeCenterY
+        EX1 = Array << EdgeCenterX
+        EX2 = Array << EdgeCenterX
+
+        EY1.xmin = Edge.xmin + 25
+        EY1.ymin = Edge.ymin + Edge.ysize/2 - EY1.ysize/2
+        EY2.xmax = Edge.xmax - 25
+        EY2.ymin = Edge.ymin + Edge.ysize/2 - EY2.ysize/2
+        EX1.ymax = Edge.ymax
+        EX1.xmin = Edge.xmin + Edge.xsize/2 - EX1.xsize/2
+        EX2.ymin = Edge.ymin + 25
+        EX2.xmin = Edge.xmin + Edge.xsize/2 - EX2.xsize/2
+
+        # Add Notes
+        NoteBias = Array << gf.components.text_freetype('LC BIAS', size=Class_Array.note_font_size, font = 'FangSong', justify='center', layer=LAYER.Bond0).rotate(90)
+        NoteBias.xmax = BiasPad.xmin - chip.wire_corner_radius
+        NoteBias.ymin = BiasPad.ymin + pad.width0/2 - NoteBias.ysize/2
+
+        NoteSquid = Array << gf.components.text_freetype('SQUID IN', size=Class_Array.note_font_size, font = 'FangSong', justify='center', layer=LAYER.Bond0).rotate(90)
+        NoteSquid.xmax = SquidPad.xmin - chip.wire_corner_radius
+        NoteSquid.ymin = SquidPad.ymin + pad.width0/2 - NoteSquid.ysize/2
+    else:
+        # Create a new component
+        Array = gf.Component()
+        Class_Array = ArrayClass(0,0,0)
+        
+        # Create frame of LCs
+        SingleCell = gf.components.rectangle(size=(chip.CellWidth, chip.CellHeight), layer=LAYER.Frame)
+        CellFrame = Array.add_array(SingleCell, columns=num_column, rows=num_row, spacing=[chip.CellWidth, chip.CellHeight])
+        print('Frame created')
+
+        # Create Pads
+        Space_Pad = chip.CellHeight*num_row/(num_column*num_row)
+        
+        TPad = gf.Component()
+        TPadself = TPad << gf.components.rectangle(size=(pad.width0, pad.width0/2), layer=LAYER.Bond0)
+        TPadin = TPad << gf.components.optimal_step(start_width=pad.width0/2, end_width=TL_width-tolerance/2, num_pts=100, layer=LAYER.Bond0, anticrowding_factor=0.1)
+        TPadin.xmin = TPadself.xmax
+        
+        GPad = gf.Component()
+        GPadself = GPad << gf.components.rectangle(size=(pad.width0, pad.width0/2), layer=LAYER.GP)
+        GPadin = GPad << gf.components.optimal_step(start_width=TL_width, end_width=pad.width0/2, num_pts=100, layer=LAYER.GP, anticrowding_factor=0.1).rotate(180)
+        GPadin.xmin = GPadself.xmax
+        GPadin.ymin = GPadself.ymin
+        
+        # Add Sum Pads
+        SumPad1 = Array << gf.components.nxn(east=num_pads, west=0, south=0, north=0, ysize=(num_pads*2-1)*TL_width - tolerance/2, xsize=pad.length1, layer=LAYER.Bond0, wg_width=TL_width - tolerance/2, wg_margin=0)
+        SumPad1.ymin = num_row*chip.CellHeight + num_pads*2*TL_width + chip.wire_corner_radius
+        Array.add_ports(SumPad1.ports,prefix='SumPad1')
+
+        SumPad2 = Array << gf.components.nxn(east=num_pads, west=0, south=0, north=0, ysize=(num_pads*2-1)*TL_width+tolerance/2, xsize=pad.length1+tolerance, layer=LAYER.GP, wg_width=TL_width, wg_margin=tolerance/4)
+        SumPad2.ymin = SumPad1.ymin - tolerance/2
+        SumPad2.xmin = SumPad1.xmin - tolerance/2
+        Array.add_ports(SumPad2.ports,prefix='SumPad2')
+
+        SumPad3 = Array << gf.components.nxn(south=num_pads, west=0, east=0, north=0, xsize=(num_pads*2-1)*TL_width, ysize=pad.length1, layer=LAYER.GP, wg_width=TL_width, wg_margin=0)
+        SumPad3.ymax = SumPad2.ymin - chip.sumpad_gap - (pad.width0 + chip.wire_corner_radius/2 - SumPad1.ysize/2)
+        SumPad3.xmax = - 10*TL_width
+        Array.add_ports(SumPad3.ports,prefix='SumPad3')
+
+        # Add SQIUD Pad and GND Pad
+        BiasPad = Array << gf.components.rectangle(size=(pad.width0, pad.width0), layer=LAYER.GP)
+        BiasPad.ymin = SumPad1.ymin - (pad.width0 + chip.wire_corner_radius/2 - SumPad1.ysize/2)
+
+        GndPad = Array << gf.components.rectangle(size=(pad.width0, pad.width0), layer=LAYER.Bond0)
+        GndPad.ymin = BiasPad.ymax + chip.wire_corner_radius
+
+        SquidPad = Array << gf.components.rectangle(size=(pad.width0, pad.width0), layer=LAYER.GP)
+        SquidPad.ymax = SumPad3.ymax
+
+        print('Pads created')
+
+        # Create Array
+        LCs = []
+        TPads = []
+        GPads = []
+        R = [0 for i in range(num_row)]
+        for j in range(num_row):
+            # Create LCs
+            R[j] = gf.Component()
+            for i in range(num_column):
+                LCs.append(R[j].add_ref(LCGenerator(via_pad_width,Ctype,num_layers,Frequencies[num_row-j-1][i],ratio_division)))
+                # LC.movex(L.outer_diameter)
+                LCs[5*j+i].xmin = i*chip.CellWidth
+                LCs[5*j+i].ymax = (j+1)*chip.CellHeight - num_column*2*TL_width - chip.wire_corner_radius
+                R[j].add_port(name = 'Lin'+str(j)+str(i), port = LCs[5*j+i].ports['Lin'])
+                R[j].add_port(name = 'FCout'+str(j)+str(i), port = LCs[5*j+i].ports['FCout'])
+                R[j].add_port(name = 'CCout'+str(j)+str(i), port = LCs[5*j+i].ports['CCin'])
+            Array << R[j]
+
+            # Create Pads Arrays
+            TPads.append(Array.add_array(TPad, columns=1, rows=num_column, spacing=[0,Space_Pad]))
+            TPads[j].xmax = CellFrame.xmin - TL_width*2*num_pads - 10*TL_width - chip.wire_corner_radius - TL_width/2
+            TPads[j].ymin = CellFrame.ymin + j*chip.CellHeight + pad.width0/2 + chip.wire_corner_radius
+            for i in range(num_column): # Add ports to pads
+                Array.add_port(name = 'TPad' + str(j) + str(i), center=(TPads[j].xmax, TPads[j].ymax - i*Space_Pad - pad.width0/2 - tolerance/4 + TL_width/2), width=TL_width-tolerance/2, orientation=0, layer=LAYER.Bond0)
+            
+            GPads.append(Array.add_array(GPad, columns=1, rows=num_column, spacing=[0,Space_Pad]))
+            GPads[j].xmax = CellFrame.xmin - TL_width*2*num_pads - 10*TL_width - chip.wire_corner_radius - TL_width/2
+            GPads[j].ymin = CellFrame.ymin + j*chip.CellHeight
+            for i in range(num_column): # Add ports to pads
+                Array.add_port(name = 'GPad' + str(j) + str(i), center=(GPads[j].xmax, GPads[j].ymax - i*Space_Pad - TL_width/2), width=TL_width, orientation=0, layer=LAYER.GP)
+            
+            # Routing to Pads
+            RLroutes = gf.routing.get_bundle_from_steps([x[1] for x in Array.ports.items() if x[0].startswith('TPad'+str(j)) ], [x[1] for x in R[j].ports.items() if x[0].startswith('Lin'+str(j))], bend = 'bend_euler', radius = chip.wire_corner_radius, width = TL_width-tolerance/2, layer = LAYER.Bond0, separation=TL_width*2,
+                steps=[
+                    {"dx": num_pads*TL_width*2+chip.wire_corner_radius, "dy": 0},
+                    {"dx": 0, "y":R[j].ymax + chip.wire_corner_radius + TL_width/2},
+                    {"x":R[j].ports['Lin'+str(j)+'0'].center[0], "dy":0},
+                ],
+            )
+            for route in RLroutes:
+                Array.add(route.references)
+            
+            CGroutes = gf.routing.get_bundle_from_steps([x[1] for x in Array.ports.items() if x[0] in ['SumPad1o'+str(j*num_column+1+i) for i in range(num_column)]], [x[1] for x in R[j].ports.items() if x[0].startswith('FCout'+str(j))], bend = 'bend_euler', radius = chip.wire_corner_radius, width = TL_width-tolerance/2, layer = LAYER.Bond0, separation=TL_width*2,
+                steps=[
+                    {"x": R[j].xmax + (num_pads-j*num_column+1-.75)*TL_width*2, "dy": 0},
+                    {"dx": 0, "y": R[j].ymin - chip.wire_corner_radius},
+                    {"x": R[j].ports['FCout'+str(j)+'0'].center[0], "dy": 0},
+                ],
+            ) #bundle 函数以最右侧线的中线算位置
+            for route in CGroutes:
+                Array.add(route.references)
+
+            CBroutes = []
+            for i in range(num_column-1):
+                CBroutes.append(gf.routing.get_route_from_steps(Array.ports['SumPad2o'+str(j*num_column+1+i)], R[j].ports['CCout'+str(j)+str(i)], bend = 'bend_euler', radius = chip.wire_corner_radius, width = TL_width, layer = LAYER.GP,
+                    steps=[
+                        {"x": R[j].xmax + (num_pads-j*num_column-i+5-.75)*TL_width*2, "dy": 0},
+                        {"dx": 0, "y": R[j].ymin - (num_column-i-1)*2*TL_width - chip.wire_corner_radius},
+                        {"x": R[j].ports['CCout'+str(j)+str(i)].center[0]+chip.wire_corner_radius, "dy": 0},
+                        {"dx" :0, "y": R[j].ports['CCout'+str(j)+str(i)].center[1]},
+                    ],
+                ))
+            i = num_column-1
             CBroutes.append(gf.routing.get_route_from_steps(Array.ports['SumPad2o'+str(j*num_column+1+i)], R[j].ports['CCout'+str(j)+str(i)], bend = 'bend_euler', radius = chip.wire_corner_radius, width = TL_width, layer = LAYER.GP,
-                steps=[
-                    {"x": R[j].xmax + (num_pads-j*num_column-i+5-.75)*TL_width*2, "dy": 0},
-                    {"dx": 0, "y": R[j].ymin - (num_column-i-1)*2*TL_width - chip.wire_corner_radius},
-                    {"x": R[j].ports['CCout'+str(j)+str(i)].center[0]+chip.wire_corner_radius, "dy": 0},
-                    {"dx" :0, "y": R[j].ports['CCout'+str(j)+str(i)].center[1]},
-                ],
-            ))
-        i = num_column-1
-        CBroutes.append(gf.routing.get_route_from_steps(Array.ports['SumPad2o'+str(j*num_column+1+i)], R[j].ports['CCout'+str(j)+str(i)], bend = 'bend_euler', radius = chip.wire_corner_radius, width = TL_width, layer = LAYER.GP,
-                steps=[
-                    {"x": R[j].xmax + (num_pads-j*num_column-i+5-.75)*TL_width*2, "dy": 0},
-                    {"dx": 0, "y": R[j].ports['CCout'+str(j)+str(i)].center[1]},
-                ],
-            ))
-        for route in CBroutes:
-            Array.add(route.references)
+                    steps=[
+                        {"x": R[j].xmax + (num_pads-j*num_column-i+5-.75)*TL_width*2, "dy": 0},
+                        {"dx": 0, "y": R[j].ports['CCout'+str(j)+str(i)].center[1]},
+                    ],
+                ))
+            for route in CBroutes:
+                Array.add(route.references)
 
-        RSroutes = gf.routing.get_bundle([x[1] for x in Array.ports.items() if x[0] in ['SumPad3o'+str(j*num_column+1+i) for i in range(num_column)]], [x[1] for x in Array.ports.items() if x[0].startswith('GPad'+str(j))], bend = 'bend_euler', radius = chip.wire_corner_radius, width = TL_width, layer = LAYER.GP, separation=TL_width*2) #bundle 函数以最右侧线的中线算位置
-        for route in RSroutes:
-            Array.add(route.references)
-    
-    # Correct the position of GND and Squid Pads and wire them to Sumpads
-    GndPad.xmin = GPads[0].xmin
-    SquidPad.xmin = GPads[0].xmin
-    BiasPad.xmin = GPads[0].xmin
+            RSroutes = gf.routing.get_bundle([x[1] for x in Array.ports.items() if x[0] in ['SumPad3o'+str(j*num_column+1+i) for i in range(num_column)]], [x[1] for x in Array.ports.items() if x[0].startswith('GPad'+str(j))], bend = 'bend_euler', radius = chip.wire_corner_radius, width = TL_width, layer = LAYER.GP, separation=TL_width*2) #bundle 函数以最右侧线的中线算位置
+            for route in RSroutes:
+                Array.add(route.references)
+        
+        # Correct the position of GND and Squid Pads and wire them to Sumpads
+        GndPad.xmin = GPads[0].xmin
+        SquidPad.xmin = GPads[0].xmin
+        BiasPad.xmin = GPads[0].xmin
 
-    GndWire = Array << gf.components.optimal_step(start_width=pad.width0, end_width=SumPad1.ysize/2-chip.wire_corner_radius/2, num_pts=100, layer=LAYER.Bond0, anticrowding_factor=0.3)
-    GndWire.xmin = GndPad.xmax
-    GndWire.ymin = GndPad.ymin
+        GndWire = Array << gf.components.optimal_step(start_width=pad.width0, end_width=SumPad1.ysize/2-chip.wire_corner_radius/2, num_pts=100, layer=LAYER.Bond0, anticrowding_factor=0.3)
+        GndWire.xmin = GndPad.xmax
+        GndWire.ymin = GndPad.ymin
 
-    BiasWire = Array << gf.components.optimal_step(end_width=pad.width0, start_width=SumPad2.ysize/2-chip.wire_corner_radius/2, num_pts=100, layer=LAYER.GP, anticrowding_factor=0.3).rotate(180)
-    BiasWire.xmin = BiasPad.xmax
-    BiasWire.ymax = BiasPad.ymax
+        BiasWire = Array << gf.components.optimal_step(end_width=pad.width0, start_width=SumPad2.ysize/2-chip.wire_corner_radius/2, num_pts=100, layer=LAYER.GP, anticrowding_factor=0.3).rotate(180)
+        BiasWire.xmin = BiasPad.xmax
+        BiasWire.ymax = BiasPad.ymax
 
-    GndWire1 = Array.add_polygon([(GndWire.xmax, SumPad1.ymax), (SumPad1.xmin, SumPad1.ymax), (SumPad1.xmin, GndWire.ymin), (GndWire.xmax, GndWire.ymin)], layer=LAYER.Bond0)
-    BiasWire1 = Array.add_polygon([(BiasWire.xmax, BiasWire.ymax), (SumPad2.xmin, BiasWire.ymax), (SumPad2.xmin, SumPad2.ymin), (BiasWire.xmax, SumPad2.ymin)], layer=LAYER.GP)
-    SquidPad1 = Array.add_polygon([(SquidPad.xmax, SquidPad.ymax), (SumPad3.xmin, SquidPad.ymax), (SumPad3.xmin, SumPad3.ymin), (SquidPad.xmax, SquidPad.ymin)], layer=LAYER.GP)
-    
-    # Add Bonding Pads and Holes for GPads, BiasPad and SquidPad
-    GPadhole = gf.components.rectangle(size=(pad.width0 - 2*tolerance, pad.width0/2 - 2*tolerance), layer=LAYER.E0)
-    GPadholes = Array.add_array(GPadhole, columns=1, rows=num_pads, spacing=[0,Space_Pad])
-    GPadholes.ymin = GPads[0].ymin + tolerance
-    GPadholes.xmin = GPads[0].xmin + tolerance
+        GndWire1 = Array.add_polygon([(GndWire.xmax, SumPad1.ymax), (SumPad1.xmin, SumPad1.ymax), (SumPad1.xmin, GndWire.ymin), (GndWire.xmax, GndWire.ymin)], layer=LAYER.Bond0)
+        BiasWire1 = Array.add_polygon([(BiasWire.xmax, BiasWire.ymax), (SumPad2.xmin, BiasWire.ymax), (SumPad2.xmin, SumPad2.ymin), (BiasWire.xmax, SumPad2.ymin)], layer=LAYER.GP)
+        SquidPad1 = Array.add_polygon([(SquidPad.xmax, SquidPad.ymax), (SumPad3.xmin, SquidPad.ymax), (SumPad3.xmin, SumPad3.ymin), (SquidPad.xmax, SquidPad.ymin)], layer=LAYER.GP)
+        
+        # Add Bonding Pads and Holes for GPads, BiasPad and SquidPad
+        GPadhole = gf.components.rectangle(size=(pad.width0 - 2*tolerance, pad.width0/2 - 2*tolerance), layer=LAYER.E0)
+        GPadholes = Array.add_array(GPadhole, columns=1, rows=num_pads, spacing=[0,Space_Pad])
+        GPadholes.ymin = GPads[0].ymin + tolerance
+        GPadholes.xmin = GPads[0].xmin + tolerance
 
-    GPadBondings = Array.add_array(gf.components.rectangle(size=(pad.width0 - tolerance, pad.width0/2 - tolerance), layer=LAYER.Bond0), columns=1, rows=num_pads, spacing=[0,Space_Pad])
-    GPadBondings.ymin = GPads[0].ymin + tolerance/2
-    GPadBondings.xmin = GPads[0].xmin + tolerance/2
+        GPadBondings = Array.add_array(gf.components.rectangle(size=(pad.width0 - tolerance, pad.width0/2 - tolerance), layer=LAYER.Bond0), columns=1, rows=num_pads, spacing=[0,Space_Pad])
+        GPadBondings.ymin = GPads[0].ymin + tolerance/2
+        GPadBondings.xmin = GPads[0].xmin + tolerance/2
 
-    BiasPadhole = Array << gf.components.rectangle(size=(pad.width0 - 2*tolerance, pad.width0 - 2*tolerance), layer=LAYER.E0)
-    BiasPadhole.ymin = BiasPad.ymin + tolerance
-    BiasPadhole.xmin = BiasPad.xmin + tolerance
+        BiasPadhole = Array << gf.components.rectangle(size=(pad.width0 - 2*tolerance, pad.width0 - 2*tolerance), layer=LAYER.E0)
+        BiasPadhole.ymin = BiasPad.ymin + tolerance
+        BiasPadhole.xmin = BiasPad.xmin + tolerance
 
-    BiasPadBonding = Array << gf.components.rectangle(size=(pad.width0 - tolerance, pad.width0 - tolerance), layer=LAYER.Bond0)
-    BiasPadBonding.ymin = BiasPad.ymin + tolerance/2
-    BiasPadBonding.xmin = BiasPad.xmin + tolerance/2
+        BiasPadBonding = Array << gf.components.rectangle(size=(pad.width0 - tolerance, pad.width0 - tolerance), layer=LAYER.Bond0)
+        BiasPadBonding.ymin = BiasPad.ymin + tolerance/2
+        BiasPadBonding.xmin = BiasPad.xmin + tolerance/2
 
-    SquidPadhole = Array << gf.components.rectangle(size=(pad.width0 - 2*tolerance, pad.width0 - 2*tolerance), layer=LAYER.E0)
-    SquidPadhole.ymax = SquidPad.ymax - tolerance
-    SquidPadhole.xmin = SquidPad.xmin + tolerance
+        SquidPadhole = Array << gf.components.rectangle(size=(pad.width0 - 2*tolerance, pad.width0 - 2*tolerance), layer=LAYER.E0)
+        SquidPadhole.ymax = SquidPad.ymax - tolerance
+        SquidPadhole.xmin = SquidPad.xmin + tolerance
 
-    SquidPadBonding = Array << gf.components.rectangle(size=(pad.width0 - tolerance, pad.width0 - tolerance), layer=LAYER.Bond0)
-    SquidPadBonding.ymax = SquidPad.ymax - tolerance/2
-    SquidPadBonding.xmin = SquidPad.xmin + tolerance/2
+        SquidPadBonding = Array << gf.components.rectangle(size=(pad.width0 - tolerance, pad.width0 - tolerance), layer=LAYER.Bond0)
+        SquidPadBonding.ymax = SquidPad.ymax - tolerance/2
+        SquidPadBonding.xmin = SquidPad.xmin + tolerance/2
 
-    # Create etched edge for array
-    Edge = Array << gf.geometry.outline(gf.components.rectangle(size=(Array.xsize + 250, Array.ysize + 250)), distance=75, layer=LAYER.E0)
-    Edge.xmin = Array.xmin - 200
-    Edge.ymin = Array.ymin - 200
+        # Create etched edge for array
+        Edge = Array << gf.geometry.outline(gf.components.rectangle(size=(Array.xsize + 250, Array.ysize + 250)), distance=75, layer=LAYER.E0)
+        Edge.xmin = Array.xmin - 200
+        Edge.ymin = Array.ymin - 200
 
-    Coner = gf.Component()
-    Coner.add_polygon([(0,0), (50,0), (50,450), (500,450), (500,500), (0,500)], layer=LAYER.GP)
-    
-    C1 = Array << Coner
-    C2 = Array << Coner
-    C3 = Array << Coner
-    C4 = Array << Coner
+        Coner = gf.Component()
+        Coner.add_polygon([(0,0), (50,0), (50,450), (500,450), (500,500), (0,500)], layer=LAYER.GP)
+        
+        C1 = Array << Coner
+        C2 = Array << Coner
+        C3 = Array << Coner
+        C4 = Array << Coner
 
-    C1.xmin = Edge.xmin + 25
-    C1.ymax = Edge.ymax - 25
-    C2.rotate(-90)
-    C2.xmax = Edge.xmax - 25
-    C2.ymax = Edge.ymax - 25
-    C3.rotate(90)
-    C3.xmin = Edge.xmin + 25
-    C3.ymin = Edge.ymin + 25
-    C4.rotate(180)
-    C4.xmax = Edge.xmax - 25
-    C4.ymin = Edge.ymin + 25
+        C1.xmin = Edge.xmin + 25
+        C1.ymax = Edge.ymax - 25
+        C2.rotate(-90)
+        C2.xmax = Edge.xmax - 25
+        C2.ymax = Edge.ymax - 25
+        C3.rotate(90)
+        C3.xmin = Edge.xmin + 25
+        C3.ymin = Edge.ymin + 25
+        C4.rotate(180)
+        C4.xmax = Edge.xmax - 25
+        C4.ymin = Edge.ymin + 25
 
-    EdgeCenterY = gf.components.rectangle(size = (50, Array.ysize/20), layer=LAYER.GP)
-    EdgeCenterX = gf.components.rectangle(size = (Array.xsize/20, 50), layer=LAYER.GP)
-    
-    EY1 = Array << EdgeCenterY
-    EY2 = Array << EdgeCenterY
-    EX1 = Array << EdgeCenterX
-    EX2 = Array << EdgeCenterX
+        EdgeCenterY = gf.components.rectangle(size = (50, Array.ysize/20), layer=LAYER.GP)
+        EdgeCenterX = gf.components.rectangle(size = (Array.xsize/20, 50), layer=LAYER.GP)
+        
+        EY1 = Array << EdgeCenterY
+        EY2 = Array << EdgeCenterY
+        EX1 = Array << EdgeCenterX
+        EX2 = Array << EdgeCenterX
 
-    EY1.xmin = Edge.xmin + 25
-    EY1.ymin = Edge.ymin + Edge.ysize/2 - EY1.ysize/2
-    EY2.xmax = Edge.xmax - 25
-    EY2.ymin = Edge.ymin + Edge.ysize/2 - EY2.ysize/2
-    EX1.ymax = Edge.ymax
-    EX1.xmin = Edge.xmin + Edge.xsize/2 - EX1.xsize/2
-    EX2.ymin = Edge.ymin + 25
-    EX2.xmin = Edge.xmin + Edge.xsize/2 - EX2.xsize/2
+        EY1.xmin = Edge.xmin + 25
+        EY1.ymin = Edge.ymin + Edge.ysize/2 - EY1.ysize/2
+        EY2.xmax = Edge.xmax - 25
+        EY2.ymin = Edge.ymin + Edge.ysize/2 - EY2.ysize/2
+        EX1.ymax = Edge.ymax
+        EX1.xmin = Edge.xmin + Edge.xsize/2 - EX1.xsize/2
+        EX2.ymin = Edge.ymin + 25
+        EX2.xmin = Edge.xmin + Edge.xsize/2 - EX2.xsize/2
 
-    # Add Notes
-    NoteGND = Array << gf.components.text_freetype('GND', size=Class_Array.note_font_size, font = 'FangSong', justify='center', layer=LAYER.Bond0).rotate(90)
-    NoteGND.xmax = GndPad.xmin - chip.wire_corner_radius
-    NoteGND.ymin = GndPad.ymin + pad.width0/2 - NoteGND.ysize/2
+        # Add Notes
+        NoteGND = Array << gf.components.text_freetype('GND', size=Class_Array.note_font_size, font = 'FangSong', justify='center', layer=LAYER.Bond0).rotate(90)
+        NoteGND.xmax = GndPad.xmin - chip.wire_corner_radius
+        NoteGND.ymin = GndPad.ymin + pad.width0/2 - NoteGND.ysize/2
 
-    NoteBias = Array << gf.components.text_freetype('LC BIAS', size=Class_Array.note_font_size, font = 'FangSong', justify='center', layer=LAYER.Bond0).rotate(90)
-    NoteBias.xmax = BiasPad.xmin - chip.wire_corner_radius
-    NoteBias.ymin = BiasPad.ymin + pad.width0/2 - NoteBias.ysize/2
+        NoteBias = Array << gf.components.text_freetype('LC BIAS', size=Class_Array.note_font_size, font = 'FangSong', justify='center', layer=LAYER.Bond0).rotate(90)
+        NoteBias.xmax = BiasPad.xmin - chip.wire_corner_radius
+        NoteBias.ymin = BiasPad.ymin + pad.width0/2 - NoteBias.ysize/2
 
-    NoteSquid = Array << gf.components.text_freetype('SQUID IN', size=Class_Array.note_font_size, font = 'FangSong', justify='center', layer=LAYER.Bond0).rotate(90)
-    NoteSquid.xmax = SquidPad.xmin - chip.wire_corner_radius
-    NoteSquid.ymin = SquidPad.ymin + pad.width0/2 - NoteSquid.ysize/2
+        NoteSquid = Array << gf.components.text_freetype('SQUID IN', size=Class_Array.note_font_size, font = 'FangSong', justify='center', layer=LAYER.Bond0).rotate(90)
+        NoteSquid.xmax = SquidPad.xmin - chip.wire_corner_radius
+        NoteSquid.ymin = SquidPad.ymin + pad.width0/2 - NoteSquid.ysize/2
 
     return Array 
 
 @gf.cell
-def newChip(ArrayFunction,Radius_inch,labelpath = False, distribution = 'Default',**kwargs) -> gf.Component:
+def newChip(ArrayFunction,Radius_inch,labelpath = False, distribution = 'Default',inverse=False, InverseArrayPath = None,**kwargs) -> gf.Component:
     '''
     Creates a new chip.
     '''
@@ -490,7 +670,8 @@ def newChip(ArrayFunction,Radius_inch,labelpath = False, distribution = 'Default
         elif Radius_inch == 4:
             Array_num = 13
             # Create arrays with basic parameters
-            Arrays = [Chip << ArrayFunction(**kwargs) for i in range(Array_num)]
+            oriArray = ArrayFunction(**kwargs)
+            Arrays = [Chip << oriArray for i in range(Array_num)]
             ArrayClasses = [ArrayClass(1,1,90),ArrayClass(2,1,90),ArrayClass(2,2,90),ArrayClass(3,1,0),ArrayClass(3,2,0),ArrayClass(3,3,0),ArrayClass(3,4,0),ArrayClass(3,5,0),ArrayClass(3,6,0),ArrayClass(3,7,0),ArrayClass(4,1,90),ArrayClass(4,2,90),ArrayClass(5,1,90)]
             
             # Alter the orientation of arrays and determine height of every row and width of every column
@@ -586,7 +767,8 @@ def newChip(ArrayFunction,Radius_inch,labelpath = False, distribution = 'Default
         try:
             # Create arrays with basic parameters
             Array_num = len(distribution)
-            Arrays = [Chip << ArrayFunction(**kwargs) for i in range(Array_num)]
+            oriArray = ArrayFunction(**kwargs)
+            Arrays = [Chip << oriArray for i in range(Array_num)]
             ArrayClasses = []
             for array in distribution:
                 ArrayClasses.append(ArrayClass(array[0],array[1],array[2]))
@@ -679,4 +861,40 @@ def newChip(ArrayFunction,Radius_inch,labelpath = False, distribution = 'Default
         MaskOrder.xmin, MaskOrder.ymin = chip.MaskLabelPosition
         MaskOrder.movex(-MaskOrder.xsize/2).movey(-MaskOrder.ysize/2)
 
+    if inverse:
+        # GPinverse = gf.geometry.boolean(Wafer,Chip.extract([LAYER.Bond0]),'A-B')
+        # Chip.remove_layers(layers=[LAYER.Bond0,LAYER.WAFER])
+        # Chip.add_ref(GPinverse.references)
+        ArrayFrame = gf.components.rectangle(size = (oriArray.xsize, oriArray.ysize))
+        ArrayFrames = gf.Component()
+        frames = []
+        for i,array in enumerate(Arrays):
+            frames.append(ArrayFrames << ArrayFrame)
+            frames[-1].rotate(ArrayClasses[i].rotation)
+            frames[-1].xmin = array.xmin
+            frames[-1].ymin = array.ymin
+        O1r = ArrayFrames.add_ref(gf.components.text_freetype('Mask 01', size=1500, font = 'FangSong', justify='center', layer=LAYER.GP))
+        O1r.ymin = MaskOrder.ymin
+        O1r.xmin = chip.MaskLabelPosition[0]
+        O1r.movex(-MaskOrder.xsize/2+label.xsize+3000)
+        MarkerGP = Marker.extract([LAYER.GP])
+        LMarkerGP = ArrayFrames << MarkerGP
+        LMarkerGP.xmax = LMarker.xmax
+        LMarkerGP.ymin = chip.MarkerPosition[1]
+        LMarkerGP.movey(-LMarkerGP.ysize/2)
+        RMarkerGP = ArrayFrames << MarkerGP
+        RMarkerGP.xmax = RMarker.xmax
+        RMarkerGP.ymin = chip.MarkerPosition[1]
+        RMarkerGP.movey(-RMarkerGP.ysize/2)
+
+        Chip = Chip.remove_layers([LAYER.GP])
+
+        Chip << gf.geometry.boolean(Wafer,ArrayFrames,'A-B',layer=LAYER.GP)
+        InverseArray = gf.import_gds(InverseArrayPath)
+        InverseArrays = []
+        for i,frame in enumerate(frames):
+            InverseArrays.append(Chip << InverseArray)
+            InverseArrays[-1].rotate(ArrayClasses[i].rotation)
+            InverseArrays[-1].xmin = frame.xmin
+            InverseArrays[-1].ymin = frame.ymin
     return Chip
