@@ -16,3 +16,5 @@ output/Inductor_3D.mph
 output/LGenerator_sim_num_layers3.gds
 output/LGenerator_sim_num_layers3.3mf
 output/Inductor.mph.lock
+output/Array_without_voltage_division_inverse.gds
+output/LC_array_4inch_without_votage_division_inverseGP.gds
