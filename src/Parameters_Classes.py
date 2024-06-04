@@ -6,24 +6,19 @@ class Chip:
         self.name = "CHIP NAME"
         self.date = "DATE"
         #geometry
-        self.num_LC_rows = 5 #dummy value
-        self.num_LC_cols = 8 #dummy value
+        self.num_LC_rows = 5
+        self.num_LC_cols = 8
         self.CellHeight = 4000
         self.CellWidth = 2000
-        #frequency information
-        self.frequency_schedule = numpy.zeros(self.num_LC_rows * self.num_LC_cols)
-        self.channel_order = numpy.zeros(self.num_LC_rows * self.num_LC_cols)
-        self.num_LCs = 40 #dummy value
+        self.num_LCs = 40 
         #WIRING PARAMETERS
         self.TL_width = 10 # width of transmission line
-        self.wire2wire_space = 20 # space between wires
+        self.wire2wire_space = self.TL_width # space between wires
         self.wire_corner_radius = 30 
         self.sumpad_gap = 100 # wiring gap for the corners of the chip
         self.array_gap_x = 2000 # gap between the array of LCs
         self.array_gap_y = 2000 # gap between the array of LCs
-        self.array_column_num = 3 # number of LCs in a column
-        self.array_row_num = 3 # number of LCs in a row
-        self.MarkerPosition = (-41300, 21300) # position of center of corner markers
+        self.MarkerPosition = (-41300, 21300) # position of center of alignment markers
         self.MaskLabelPosition = (25000, 37000) # position of center of mask label
         
 class PadClass:
@@ -41,7 +36,7 @@ class InductorClass:
         self.gap_width = 4#3#3#2 #microns 
         self.line_width = 4#3#3#2 # microns
         self.num_turns = 40#48#40#45 # number of turns in coil
-        self.outer_diameter = 785#705#650#500 # size of inductor
+        self.outer_diameter = 785#1560#705#650#500 # size of inductor
         self.inductance = 3.3257e-6 # inductance [Henry]
         
         if numLayers == 1:
@@ -61,14 +56,16 @@ class CapacitorClass:
         self.num_layers = numLayers
         if Ctype == "PPC":  # parallel plate capacitor
             #used in parallel plate capacitor -- maybe create this?
-            self.length = CalculatePPCapacitorParameters(Frequency,ratio)
+            self.er = 11
+            self.h = 25e-9
+            self.length = CalculatePPCapacitorParameters(Frequency,ratio,self.er,self.h)
         if Ctype == "IDC": #interdigital capacitor
             #used in interdigitated capacitor
-            self.gap_width = 4
-            self.line_width = 4
+            self.gap_width = 2
+            self.line_width = 2
             self.base_height = 100 
             self.width = 100
-            self.er = 11.7 # dielectric constant, using Silicon = 11.7
+            self.er = 11 # dielectric constant, using Silicon = 11.7
             self.h = 300  # [microns] thickness of substrate
             self.finger_num, self.line_height = CalculateIDCapacitorParameters(Frequency, self.h, self.line_width, self.er)
             self.height = self.base_height * 2 + self.line_height + self.gap_width # total height of capacitor
@@ -94,17 +91,17 @@ class ArrayClass:
 
 L = InductorClass(1)
 
-def CalculatePPCapacitorParameters(Frequency,ratio):
+def CalculatePPCapacitorParameters(Frequency,ratio,er,h):
     # calculate the length of the parallel plate capacitor based on the desired capacity.
     # C = epsilon * A / d
     # A = length * length
     # d = 25 nm
-    # epsilon = 8.5*8.85e-12
-    # C = 8.5*8.85e-12/25e-9 * S
-    # S = C / 0.003009
+    # epsilon = 11.7*8.85e-12
+    # C = er*8.85e-12/h * S
+    # S = C / (er*8.85e-12/h)
     Capacity = 1/(L.inductance*(2*Frequency*numpy.pi)**2)
     print (Capacity)
-    return numpy.sqrt(ratio*Capacity / 0.003009)*1e6 # change its capacitor to specific ratio and convert its length to microns
+    return numpy.sqrt(ratio*Capacity / (er*8.85e-12/h))*1e6 # change its capacitor to specific ratio and convert its length to microns
 
 def CalculateIDCapacitorParameters(Frequency, h, W, er):
     #Calculate capacitance
