@@ -57,14 +57,14 @@ def bode_basic_RLC(f1,f2):
 
 def Crosstalk(f1,f2,p1,p2):
     '''
-    2对1的串扰电压大小。
+    2对1的串扰造成的电流噪声功率谱密度。
     '''
     p1 = np.array(p1)
     p2 = np.array(p2)
     # print(f1,f2,p1,p2)
     M = (np.linalg.norm(p1-p2)**(-4))
     I = bode_basic_RLC(f1,f2)
-    return I*f2*M
+    return (I*f2*M)**2
 
 def Ucs(individual):
     Ucs = []
@@ -73,8 +73,8 @@ def Ucs(individual):
         Uc = 0
         for j,f2 in enumerate(newArrange):
             if f2 != f1:
-                Uc += Crosstalk(f1,f2,Position[i],Position[j])
-        Ucs.append(Uc)
+                Uc += Crosstalk(f1,f2,Position[i],Position[j]) 
+        Ucs.append(np.sqrt(Uc))
     return np.array(Ucs)
 
 def fitness(individual):
@@ -85,8 +85,8 @@ def fitness(individual):
         for j,f2 in enumerate(newArrange):
             if f2 != f1:
                 Uc += Crosstalk(f1,f2,Position[i],Position[j])
-        Ucs.append(Uc)
-    return np.array(Ucs).max(), #也许max(Ucs)更合适？
+        Ucs.append(np.sqrt(Uc))
+    return np.array(Ucs).max(), 
 
 def opt(individual, k=2):
     # 该局部搜索算法仅适用于经典TSP问题
