@@ -12,15 +12,15 @@ class LAYER(LayerMap):
     Frame: Layer = (99, 0)
 
     GP: Layer = (1, 0)
-    D: Layer = (2, 0)
-    TP: Layer = (3, 0)
-    E0: Layer = (21, 0)
-    E1: Layer = (23, 0)
-    E2: Layer = (25, 0)
+    TP: Layer = (2, 0)
+    D: Layer = (15, 0)
+    E0: Layer = (11, 0)
+    E1: Layer = (12, 0)
+    E2: Layer = (13, 0)
     Bond0: Layer = (20, 0)
-    Bond1: Layer = (22, 0)
-    Bond2: Layer = (24, 0)
-    Bond3: Layer = (26, 0)
+    Bond1: Layer = (21, 0)
+    Bond2: Layer = (22, 0)
+    Bond3: Layer = (23, 0)
 
 LAYER = LAYER()
 

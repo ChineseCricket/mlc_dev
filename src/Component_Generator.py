@@ -221,8 +221,8 @@ def LGenerator(layer) -> gf.Component:
         viahole1.xmin = ViaPadBond1.xmin + tolerance/2
         viahole1.ymin = ViaPadBond1.ymin + tolerance/2
         viahole2 = LCircuit << gf.components.rectangle(size=(via_pad_width - tolerance, via_pad_width - tolerance), layer=LAYER.E0)
-        viahole2.xmin = ViaPadBond1.xmin + tolerance/2
-        viahole2.ymin = ViaPadBond1.ymin + tolerance/2
+        viahole2.xmin = ViaPadBond2.xmin + tolerance/2
+        viahole2.ymin = ViaPadBond2.ymin + tolerance/2
 
     return LCircuit
 
@@ -650,7 +650,7 @@ def LCGenerator(via_pad_width,capacitor_type,num_layers,Frequency,ratio_division
         LCCircuit.add_port(name='Lin', port=Inductor.ports['Lin'])
         LCCircuit.add_port(name='Lout', port=Inductor.ports['Lout'])
 
-        # connecting
+        # connecting    
         ConnectingPadT = LCCircuit << gf.components.rectangle(size=(ConnectingPadSize[1], ConnectingPadSize[1]), layer=LAYER.Bond0)
         ConnectingPadT.xmax = LCCircuit.ports['Lout'].x + via_pad_width/2
         ConnectingPadT.ymin = LCCircuit.ports['FCin'].y + (LC.gap - ConnectingPadSize[1])/2
@@ -751,3 +751,263 @@ def LCGenerator(via_pad_width,capacitor_type,num_layers,Frequency,ratio_division
         LCCircuit.add(Pad2CC.references)
 
     return LCCircuit
+
+@gf.cell
+def test_L_eql(layer) -> gf.Component:
+    '''
+    Generate test coil with equal route length with filter L.
+    '''
+    #L Component
+    pitch = L.line_width + L.gap_width # define pitch of inductor
+    L_pad_gap = via_pad_width/2 + pitch #offset to create via
+    Diameter = 1672 # size of test coil
+    CoilPath = [(0,Diameter-100)] # initialize path list
+    LCircuit = gf.Component() # initialize component
+
+    # generate path for inductor
+    for i in range(64):
+        p1 = (i * pitch, Diameter - L.line_width - i*pitch)
+        p2 = (Diameter - L.line_width - i*pitch, Diameter - L.line_width - i*pitch)
+        p3 = (Diameter - L.line_width - i*pitch, i*pitch + L.line_width)
+        p4 = ((i+1) * pitch, i * pitch + L.line_width)
+        CoilPath += [p1, p2, p3, p4]
+
+    i = i + 1
+    L2TL = LCircuit << gf.components.optimal_step(start_width=TL_width, end_width=L.line_width, num_pts=100, layer=layer, anticrowding_factor=0.5).rotate(-90)
+    L2TL.xmin = i*pitch - L.line_width/2
+    L2TL.ymin = i*pitch + 20
+    GPvia = LCircuit << gf.components.rectangle(size=(pad.length1 + tolerance, pad.length1 + tolerance), layer=layer) # via in ground plane layer
+    GPvia.movex(Diameter/2 - pad.length1/2 - tolerance/2).movey(Diameter/2 - pad.length1/2 - tolerance/2) # move via to correct position
+    GPviapin = LCircuit << gf.components.optimal_step(start_width=TL_width, end_width=via_pad_width + tolerance, num_pts=100, symmetric=True, layer=layer, anticrowding_factor=0.5)
+    GPviapin.xmax = GPvia.xmin
+    GPviapin.ymin = GPvia.ymin
+    GPHole = LCircuit << gf.components.rectangle(size=(pad.length1 - tolerance, pad.length1 - tolerance), layer=LAYER.E0) # hole in SiO2 layer
+    GPHole.xmin = GPvia.xmin + tolerance
+    GPHole.ymin = GPvia.ymin + tolerance
+    GPBond = LCircuit << gf.components.rectangle(size=(pad.length1, pad.length1), layer=LAYER.Bond0) # hole in SiO2 layer
+    GPBond.xmin = GPvia.xmin + tolerance/2
+    GPBond.ymin = GPvia.ymin + tolerance/2
+    # label of GP
+    GPlabel = LCircuit << gf.components.text_freetype('Coil2B', size=50, font = 'FangSong', justify='center', layer=LAYER.Bond0)
+    GPlabel.ymin = GPvia.ymax + chip.wire_corner_radius
+    GPlabel.x = GPvia.x
+
+    CoilPath += [(i*pitch, i*pitch + 20)] # add small vertical line to connect to via
+
+    CoilPath = gf.path.smooth(points=CoilPath, radius=10) # create path object for inductor
+    # CoilPath = gf.Path(CoilPath)
+    Coil = LCircuit << gf.path.extrude(CoilPath, layer=layer, width=L.line_width) # extrude path to create inductor
+    
+    Coilin = LCircuit << gf.components.optimal_step(start_width=TL_width, end_width=L.line_width, num_pts=100, layer=layer, anticrowding_factor=1).rotate(90)
+    Coilin.xmax = L.line_width/2
+    Coilin.ymax = Diameter - 100
+
+    LCircuit.add_port(name='via0', port=L2TL.ports['e1'])
+    LCircuit.add_port(name='via1', port=GPviapin.ports['e1'])
+    ViaLine = gf.routing.get_route_electrical(LCircuit.ports["via0"], LCircuit.ports["via1"], bend="bend_euler", radius=10, layer=layer, width=TL_width)
+    LCircuit.add(ViaLine.references)
+
+    LCircuit.add_port(name='Coilin', port = Coilin.ports['e1']) # add port to inductor
+
+    return LCircuit
+
+@gf.cell
+def test_L_eql_po(layer) -> gf.Component:
+    '''
+    Generate test coil with equal route length with filter L.
+    '''
+    #L Component
+    pitch = L.line_width + L.gap_width # define pitch of inductor
+    L_pad_gap = via_pad_width/2 + pitch #offset to create via
+    Diameter = 1672 # size of test coil
+    CoilPath = [(-2*TL_width,Diameter-100),(-2*TL_width,Diameter-75),(0,Diameter-50)] # initialize path list
+    LCircuit = gf.Component() # initialize component
+
+    # generate path for inductor
+    for i in range(32): # in path
+        p1 = (2 * i * pitch, Diameter - L.line_width - 2*i*pitch)
+        p2 = (Diameter - L.line_width - 2*i*pitch, Diameter - L.line_width - 2*i*pitch)
+        p3 = (Diameter - L.line_width - 2*i*pitch, 2*i*pitch + L.line_width)
+        p4 = (2 * (i+1) * pitch, 2 * i * pitch + L.line_width)
+        CoilPath += [p1, p2, p3, p4]
+    
+    CoilPath += [(2 * (i+1) * pitch, (2*i+1) * pitch + L.line_width + 30)] # add small vertical line to back path
+    CoilPath += [(2 * (i+1) * pitch + 30, (2*i+1) * pitch + L.line_width + 30)] # add small horizontal line to back path
+    CoilPath += [(2 * (i+1) * pitch + 30, (2*i+1) * pitch + L.line_width)] # add small vertical line to back path
+    CoilPath += [(Diameter - L.line_width - (2*i+1)*pitch, (2*i+1) * pitch + L.line_width)]
+    CoilPath += [(Diameter - L.line_width - (2*i+1)*pitch, Diameter - L.line_width - (2*i+1)*pitch)]
+    CoilPath += [((2*i+1) * pitch, Diameter - L.line_width - (2*i+1)*pitch)]
+
+    for i in range(30,-1,-1): # back path
+        p1 = ((2*i+1) * pitch, Diameter - L.line_width - (2*i+1)*pitch)
+        p2 = (Diameter - L.line_width - (2*i+1)*pitch, Diameter - L.line_width - (2*i+1)*pitch)
+        p3 = (Diameter - L.line_width - (2*i+1)*pitch, (2*i+1) * pitch + L.line_width)
+        p4 = ((2*(i+1)+1) * pitch, (2*i+1) * pitch + L.line_width)
+        CoilPath += [p4, p3, p2, p1]
+
+    CoilPath += [(pitch, Diameter-100)] # add small vertical line to connect to Pad
+
+    CoilPath = gf.path.smooth(points=CoilPath, radius=10) # create path object for inductor
+    # CoilPath = gf.Path(CoilPath)
+    Coil = LCircuit << gf.path.extrude(CoilPath, layer=layer, width=L.line_width) # extrude path to create inductor
+
+    Coilin = LCircuit << gf.components.optimal_step(start_width=L.line_width, end_width=TL_width, num_pts=100, layer=layer, anticrowding_factor=1).rotate(-90)
+    Coilin.xmin = -2 * TL_width - L.line_width/2
+    Coilin.ymax = Diameter - 100
+
+    Coilout = LCircuit << gf.components.optimal_step(start_width=TL_width, end_width=L.line_width, num_pts=100, layer=layer, anticrowding_factor=1).rotate(90)
+    Coilout.xmax = pitch + L.line_width/2
+    Coilout.ymax = Diameter - 100
+
+    LCircuit.add_port(name='Coilin', port = Coilin.ports['e2']) # add in port to coil
+    LCircuit.add_port(name='Coilout', port = Coilout.ports['e1']) # add out port to coil
+
+    return LCircuit
+
+@gf.cell
+def test_dielectric() -> gf.Component:
+    '''
+    Generate test dielectric layer.
+    '''
+    Dielectric = gf.Component()
+    DielectricShape = Dielectric << gf.components.rectangle(size=(1000,1000), layer=LAYER.D)
+    DielectricShape.xmin = 0
+    DielectricShape.ymin = 0
+
+    TPad = Dielectric << gf.components.rectangle(size=(ConnectingPadSize[0], ConnectingPadSize[0]), layer=LAYER.Bond0)
+    TPad.x = DielectricShape.x
+    TPad.ymin = DielectricShape.ymin
+
+    # TPadHole = Dielectric << gf.components.rectangle(size=(ConnectingPadSize[0] - tolerance, ConnectingPadSize[0] - tolerance), layer=LAYER.E0)
+    # TPadHole.xmin = TPad.xmin + tolerance/2
+    # TPadHole.ymin = TPad.ymin + tolerance/2
+
+    GPad = Dielectric << gf.components.rectangle(size=(ConnectingPadSize[0], ConnectingPadSize[0]), layer=LAYER.Bond0)
+    GPad.x = DielectricShape.x
+    GPad.ymax = DielectricShape.ymax
+    
+    # GPadHole = Dielectric << gf.components.rectangle(size=(ConnectingPadSize[0] - tolerance, ConnectingPadSize[0] - tolerance), layer=LAYER.E0)
+    # GPadHole.xmin = GPad.xmin + tolerance/2
+    # GPadHole.ymin = GPad.ymin + tolerance/2
+
+    TConnector = Dielectric << gf.components.optimal_step(start_width=TL_width - tolerance/2, end_width=ConnectingPadSize[0], num_pts=100, symmetric=True, layer=LAYER.Bond0, anticrowding_factor=0.5).rotate(90)
+    TConnector.xmax = TPad.xmax
+    TConnector.ymax = TPad.ymin
+
+    GConnector = Dielectric << gf.components.optimal_step(start_width=TL_width, end_width=ConnectingPadSize[0], num_pts=100, symmetric=True, layer=LAYER.Bond0, anticrowding_factor=0.5).rotate(-90) 
+    GConnector.xmax = GPad.xmax
+    GConnector.ymin = GPad.ymax
+
+    Dielectric.add_port(name='Dout', port=TConnector.ports['e1'])
+    Dielectric.add_port(name='Din', port=GConnector.ports['e1'])
+
+    return Dielectric
+
+@gf.cell
+def test_LineR(layer,linewidth) -> gf.Component:
+    '''
+    Generate resistant test lines.
+    '''
+    LineR = gf.Component()
+    # LPads = []
+    # RPads = []
+    # Line = []
+    for i in range(4):
+        LPad = LineR << gf.components.rectangle(size=(pad.length1+tolerance,pad.length1+tolerance), layer=layer)
+        RPad = LineR << gf.components.rectangle(size=(pad.length1+tolerance,pad.length1+tolerance), layer=layer)
+        RPad.xmax = chip.CellWidth
+        RPad.ymax = chip.CellHeight/2 - i*500
+        LPad.xmax = chip.CellWidth - pad.length1 - 250*(i+1)
+        LPad.y = RPad.y
+        Line = LineR << gf.components.rectangle(size=(250*(i+1), linewidth), layer=layer)
+        Line.xmin = LPad.xmax
+        Line.y = LPad.y
+        if layer == LAYER.GP:
+            #make SiO2 Hole
+            LHole = LineR << gf.components.rectangle((pad.length1-tolerance,pad.length1-tolerance), layer=LAYER.E0)
+            LHole.xmin = LPad.xmin + tolerance
+            LHole.ymin = LPad.ymin + tolerance
+            RHole = LineR << gf.components.rectangle((pad.length1-tolerance,pad.length1-tolerance), layer=LAYER.E0)
+            RHole.xmin = RPad.xmin + tolerance
+            RHole.ymin = RPad.ymin + tolerance
+            #make Bonding Pad
+            LBondPad = LineR << gf.components.rectangle((pad.length1,pad.length1), layer=LAYER.Bond0)
+            LBondPad.xmin = LPad.xmin + tolerance/2
+            LBondPad.ymin = LPad.ymin + tolerance/2
+            RBondPad = LineR << gf.components.rectangle((pad.length1,pad.length1), layer=LAYER.Bond0)
+            RBondPad.xmin = RPad.xmin + tolerance/2
+            RBondPad.ymin = RPad.ymin + tolerance/2
+        
+        # Label of Pads
+        Llabel = LineR << gf.components.text_freetype('R'+str(int(250*(i+1)))+'A', size=50, font = 'FangSong', justify='center', layer=LAYER.Bond0).rotate(90)
+        Llabel.xmax = LPad.xmin - chip.wire_corner_radius
+        Llabel.y = LPad.y
+        Rlabel = LineR << gf.components.text_freetype('R'+str(int(250*(i+1)))+'B', size=50, font = 'FangSong', justify='center', layer=LAYER.Bond0).rotate(-90)
+        Rlabel.xmin = RPad.xmax + chip.wire_corner_radius
+        Rlabel.y = RPad.y
+
+    return LineR
+
+@gf.cell
+def test_LineR_with_turn(layer,linewidth,turnradius) -> gf.Component:
+    '''
+    Generate resistant test lines with turn. 
+    '''
+    LineR = gf.Component()
+    LPads = []
+    RPads = []
+    
+    for i in range(3):
+        LPads.append(LineR << gf.components.rectangle(size=(pad.length1+tolerance,pad.length1+tolerance), layer=layer))
+        RPads.append(LineR << gf.components.rectangle(size=(pad.length1+tolerance,pad.length1+tolerance), layer=layer))
+    
+    LPads[0].xmin = 0
+    LPads[0].ymax = chip.CellHeight/2
+    RPads[0].ymax = chip.CellHeight/2 -  LPads[0].ysize/2 - 500
+    RPads[0].x = LPads[0].xsize + 500
+    Line = [(LPads[0].xmax,LPads[0].y),(RPads[0].x,LPads[0].y),(RPads[0].x,RPads[0].ymax)]
+    Line = gf.path.smooth(points=Line, radius=turnradius)
+    Line = LineR << gf.path.extrude(Line, layer=layer, width=linewidth)
+
+    LPads[1].xmin = RPads[0].x + 150
+    LPads[1].y = LPads[0].y
+    RPads[1].ymax = chip.CellHeight/2 -  LPads[1].ysize/2 - 375
+    RPads[1].x = LPads[1].xmin + LPads[1].xsize + 375
+    Line = [(LPads[1].xmax,LPads[1].y),(RPads[1].x,LPads[1].y),(RPads[1].x,RPads[1].ymax)]
+    Line = gf.path.smooth(points=Line, radius=turnradius)
+    Line = LineR << gf.path.extrude(Line, layer=layer, width=linewidth)
+
+    RPads[2].xmax = RPads[1].xmax
+    LPads[2].xmax = RPads[2].x - 250
+    LPads[2].ymax = RPads[1].ymin - 150
+    RPads[2].ymax = LPads[2].y - 250
+    Line = [(LPads[2].xmax,LPads[2].y),(RPads[2].x,LPads[2].y),(RPads[2].x,RPads[2].ymax)]
+    Line = gf.path.smooth(points=Line, radius=turnradius)
+    Line = LineR << gf.path.extrude(Line, layer=layer, width=linewidth)
+    
+    for i in range(3):
+        if layer == LAYER.GP:
+            #make SiO2 Hole
+            LHole = LineR << gf.components.rectangle((pad.length1-tolerance,pad.length1-tolerance), layer=LAYER.E0)
+            LHole.xmin = LPads[i].xmin + tolerance
+            LHole.ymin = LPads[i].ymin + tolerance
+            RHole = LineR << gf.components.rectangle((pad.length1-tolerance,pad.length1-tolerance), layer=LAYER.E0)
+            RHole.xmin = RPads[i].xmin + tolerance
+            RHole.ymin = RPads[i].ymin + tolerance
+            #make Bonding Pad
+            LBondPad = LineR << gf.components.rectangle((pad.length1,pad.length1), layer=LAYER.Bond0)
+            LBondPad.xmin = LPads[i].xmin + tolerance/2
+            LBondPad.ymin = LPads[i].ymin + tolerance/2
+            RBondPad = LineR << gf.components.rectangle((pad.length1,pad.length1), layer=LAYER.Bond0)
+            RBondPad.xmin = RPads[i].xmin + tolerance/2
+            RBondPad.ymin = RPads[i].ymin + tolerance/2
+        # Label of Pads
+        Llabel = LineR << gf.components.text_freetype('R'+str(int(1000-i*250))+'A', size=50, font = 'FangSong', justify='center', layer=LAYER.Bond0).rotate(90)
+        Llabel.xmax = LPads[i].xmin - chip.wire_corner_radius
+        Llabel.y = LPads[i].y
+        Rlabel = LineR << gf.components.text_freetype('R'+str(int(1000-i*250))+'B', size=50, font = 'FangSong', justify='center', layer=LAYER.Bond0)
+        Rlabel.ymax = RPads[i].ymin - chip.wire_corner_radius
+        Rlabel.x = RPads[i].x
+
+    return LineR
+    

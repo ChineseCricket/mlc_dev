@@ -81,12 +81,13 @@ class ResonatorClass:
         self.total_height = height
 
 class ArrayClass:
-    def __init__(self, row_position, column_position, rotation, label=None):
+    def __init__(self, row_position, column_position, rotation, array_type='default_array', label=None):
         self.row_position = row_position
         self.column_position = column_position
         self.rotation = rotation
         self.label = label
         self.note_font_size = 50
+        self.array_type = array_type
 
 
 L = InductorClass(1)
