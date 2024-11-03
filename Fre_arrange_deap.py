@@ -13,16 +13,19 @@ import multiprocessing
 import sys
 
 #统计每个cell收到的串扰
-Arangement = np.array([
-    1e6, 1.2e6, 1.3e6, 1.4e6, 1.5e6,
-    1.6e6, 1.7e6, 1.8e6, 1.9e6, 2.0e6,
-    2.1e6, 2.2e6, 2.3e6, 2.4e6, 2.5e6,
-    2.6e6, 2.7e6, 2.8e6, 2.9e6, 3.0e6,
-    3.1e6, 3.2e6, 3.3e6, 3.4e6, 3.5e6,
-    3.6e6, 3.7e6, 3.8e6, 3.9e6, 4.0e6,
-    4.1e6, 4.2e6, 4.3e6, 4.4e6, 4.5e6,
-    4.6e6, 4.7e6, 4.8e6, 4.9e6, 5.0e6
-])
+# Arangement = np.array([
+#     1e6, 1.2e6, 1.3e6, 1.4e6, 1.5e6,
+#     1.6e6, 1.7e6, 1.8e6, 1.9e6, 2.0e6,
+#     2.1e6, 2.2e6, 2.3e6, 2.4e6, 2.5e6,
+#     2.6e6, 2.7e6, 2.8e6, 2.9e6, 3.0e6,
+#     3.1e6, 3.2e6, 3.3e6, 3.4e6, 3.5e6,
+#     3.6e6, 3.7e6, 3.8e6, 3.9e6, 4.0e6,
+#     4.1e6, 4.2e6, 4.3e6, 4.4e6, 4.5e6,
+#     4.6e6, 4.7e6, 4.8e6, 4.9e6, 5.0e6
+# ])
+# Arangement = np.array([2400000,1100000,2000000,2200000,1600000,1000000,1200000,1400000,
+# 2100000,1300000,1500000,1800000,1900000,1700000,2300000,2500000])
+Arangement = np.array([800000,700000,600000,900000])
 # Arangement = np.array([
 #     1e6, 2e6, 3.1e6, 4.1e6, 5e6,
 #     1.8e6, 4.2e6, 2.5e6, 1.7e6, 3.2e6,
@@ -33,15 +36,25 @@ Arangement = np.array([
 #     4.0e6, 2.7e6, 3.7e6, 1.4e6, 4.5e6,
 #     4.6e6, 2.4e6, 3.0e6, 2.6e6, 3.8e6
 # ])
+# Position = np.array([
+#     (1,1),(1,2),(1,3),(1,4),(1,5),
+#     (3,1),(3,2),(3,3),(3,4),(3,5),
+#     (5,1),(5,2),(5,3),(5,4),(5,5),
+#     (7,1),(7,2),(7,3),(7,4),(7,5),
+#     (9,1),(9,2),(9,3),(9,4),(9,5),
+#     (11,1),(11,2),(11,3),(11,4),(11,5),
+#     (13,1),(13,2),(13,3),(13,4),(13,5),
+#     (15,1),(15,2),(15,3),(15,4),(15,5)
+# ])
+# Position = np.array([
+#     (1,1),(1,2),(1,3),(1,4),
+#     (3,1),(3,2),(3,3),(3,4),
+#     (5,1),(5,2),(5,3),(5,4),
+#     (7,1),(7,2),(7,3),(7,4)
+# ])
 Position = np.array([
-    (1,1),(1,2),(1,3),(1,4),(1,5),
-    (3,1),(3,2),(3,3),(3,4),(3,5),
-    (5,1),(5,2),(5,3),(5,4),(5,5),
-    (7,1),(7,2),(7,3),(7,4),(7,5),
-    (9,1),(9,2),(9,3),(9,4),(9,5),
-    (11,1),(11,2),(11,3),(11,4),(11,5),
-    (13,1),(13,2),(13,3),(13,4),(13,5),
-    (15,1),(15,2),(15,3),(15,4),(15,5)
+    (1,1),(1,2),
+    (3,1),(3,2)
 ])
 
 # Define the fitness function
@@ -110,7 +123,8 @@ def main():
     pool = multiprocessing.Pool(processes=16)
 
     # Define the individual and the population
-    ngen = 1000
+    # ngen = 1000
+    ngen = 100
     npop = 400
     cxpb = 0.75
     mutpb = 0.2
@@ -203,7 +217,8 @@ def main():
     # 取出最优解
     best_ind = tools.selBest(pop, 1)[0]
     bestUcs = Ucs(best_ind)
-    print("Best Arrangement is ", Arangement[best_ind].reshape(8,5),"\n its Ucs are", bestUcs.reshape(8,5), "\n with parameters: std:", bestUcs.std(), "mean:" ,bestUcs.mean())
+    # print("Best Arrangement is ", Arangement[best_ind].reshape(4,4),"\n its Ucs are", bestUcs.reshape(4,4), "\n with parameters: std:", bestUcs.std(), "mean:" ,bestUcs.mean())
+    print("Best Arrangement is ", Arangement[best_ind].reshape(2,2),"\n its Ucs are", bestUcs.reshape(2,2), "\n with parameters: std:", bestUcs.std(), "mean:" ,bestUcs.mean())
     # show logbook
     record = stats.compile(pop)
     gen = logbook.select("gen")

@@ -38,6 +38,50 @@ Chip = newChip(4,'../logo/tsinghua logo large.gds',layer_order=[LAYER.GP, LAYER.
 Chip
 Chip.write_gds("../output/12_Chip_inv.gds")
 # %%
+Chip = newChip(4,'../logo/tsinghua logo large.gds',layer_order=[LAYER.GP, LAYER.TP,LAYER.E0,LAYER.D,LAYER.Bond0],distribution=[(1,1,90,'test_array'),(2,1,90,'default_array'),(2,2,90,'default_array'),(3,1,0,'test_array'),(3,2,0,'default_array'),(2.5,3,0,'default_array'),(3,4,0,'default_array'),(3,5,0,'default_array'),(3,6,0,'test_array'),(4,1,90,'default_array'),(4,2,90,'default_array'),(5,1,90,'test_array')],ArrayFunctions={'default_array':newArray,'test_array':TestArray},test_array = {'via_pad_width':via_pad_width,'Ctype':'PPC','num_layers':3,'num_column':5,'num_row':8,'refix':[0,460,0,0]},default_array = {'via_pad_width':via_pad_width,'Ctype':'PPC','num_layers':3,'num_column':5,'num_row':8,'Frequencies': 
+[[4200000., 3900000., 4600000., 4400000., 4800000.],
+ [3700000., 1800000., 3200000., 1000000., 5000000.],
+ [3000000., 1900000., 2600000., 1200000., 1300000.],
+ [2200000., 3400000., 2100000., 2900000., 1600000.],
+ [3600000., 1700000., 2300000., 1400000., 4100000.],
+ [2800000., 2500000., 2000000., 2700000., 1500000.],
+ [3800000., 3100000., 3300000., 4700000., 2400000.],
+ [4000000., 4300000., 3500000., 4900000., 4500000.]],
+'ratio_division':None})
+Chip
+# Chip.write_gds("../output/12_Chip.gds")
+# %%'
+# new 12chip
+'''
+下一版：在TestArray中放置一个可用万用表直接测量线阻的电路。
+'''
+Chip = newChip(4,'../logo/tsinghua logo large.gds',layer_order=[LAYER.GP, LAYER.TP,LAYER.E0,LAYER.D,LAYER.Bond0],distribution=[(1,1,90,'test_array'),(2,1,90,'default_array',0,0),(2,2,90,'default_array'),(3,1,0,'verify_array3',0,0.45),(3,1,90,'verify_array',0,0),(3,1,90,'verify_array2',0,0.22),(3,2,0,'default_array'),(3,3,0,'verify_array3',0,0.45),(3,3,90,'verify_array',0,0),(3,3,90,'verify_array2',0,0.22),(3,4,0,'default_array'),(3,5,0,'verify_array3',0,0.45),(3,5,90,'verify_array',0,0),(3,5,90,'verify_array2',0,0.22),(3,6,0,'default_array'),(4,1,90,'test_array'),(4,2,90,'test_array',0,0),(5,1,90,'default_array')],ArrayFunctions={'default_array':newArray,'test_array':TestArray,'verify_array':growArray,'verify_array2':growArray,'verify_array3':growArray},test_array = {'via_pad_width':via_pad_width,'Ctype':'PPC','num_layers':3,'num_column':5,'num_row':8,'refix':[0,460,0,0]},default_array = {'via_pad_width':via_pad_width,'Ctype':'PPC','num_layers':3,'num_column':5,'num_row':8,'Frequencies': 
+[[4200000., 3900000., 4600000., 4400000., 4800000.],
+ [3700000., 1800000., 3200000., 1000000., 5000000.],
+ [3000000., 1900000., 2600000., 1200000., 1300000.],
+ [2200000., 3400000., 2100000., 2900000., 1600000.],
+ [3600000., 1700000., 2300000., 1400000., 4100000.],
+ [2800000., 2500000., 2000000., 2700000., 1500000.],
+ [3800000., 3100000., 3300000., 4700000., 2400000.],
+ [4000000., 4300000., 3500000., 4900000., 4500000.]],
+'ratio_division':None}, verify_array = {'via_pad_width':via_pad_width,'Ctype':'PPC','num_layers':3,'num_column':2,'num_row':2,'Frequencies':[[800000,700000],[600000,900000]],'ratio_division':None}, verify_array2 = {'via_pad_width':via_pad_width,'Ctype':'PPC','num_layers':3,'num_column':2,'num_row':2,'Frequencies':[[1000000,4000000],[3000000,2000000]],'ratio_division':None},verify_array3 = {'via_pad_width':via_pad_width,'Ctype':'PPC','num_layers':3,'num_column':4,'num_row':4,'Frequencies':[[2200000,1800000,2000000,2400000],[1000000,1200000,1600000,1400000],[1700000,1500000,1900000,1100000],[2500000,2300000,2100000,1300000]],'ratio_division':None,'cell_height':4000,'cell_width':2000})
+Chip
+# Chip.write_gds("../output/12_Chip_v.gds")
+# %%
+# new 12chip_inv
+Chip = newChip(4,'../logo/tsinghua logo large.gds',layer_order=[LAYER.GP, LAYER.TP,LAYER.E0,LAYER.D,LAYER.Bond0],distribution=[(1,1,90,'test_array'),(2,1,90,'default_array',0,0),(2,2,90,'default_array'),(3,1,0,'verify_array3',0,0.45),(3,1,90,'verify_array',0,0),(3,1,90,'verify_array2',0,0.22),(3,2,0,'default_array'),(3,3,0,'verify_array3',0,0.45),(3,3,90,'verify_array',0,0),(3,3,90,'verify_array2',0,0.22),(3,4,0,'default_array'),(3,5,0,'verify_array3',0,0.45),(3,5,90,'verify_array',0,0),(3,5,90,'verify_array2',0,0.22),(3,6,0,'default_array'),(4,1,90,'test_array'),(4,2,90,'test_array',0,0),(5,1,90,'default_array')],ArrayFunctions={'default_array':newArray,'test_array':TestArray,'verify_array':growArray,'verify_array2':growArray,'verify_array3':growArray},inverse=True, InverseArrayPaths={'test_array':'../output/TestArray_Inverse.gds','default_array':'../output/Array_without_voltage_division_inverse_er11.gds','verify_array':'../output/verify_array.gds','verify_array2':'../output/verify_array2.gds','verify_array3':'../output/verify_array3.gds'}, test_array = {'via_pad_width':via_pad_width,'Ctype':'PPC','num_layers':3,'num_column':5,'num_row':8,'refix':[0,460,0,0]},default_array = {'via_pad_width':via_pad_width,'Ctype':'PPC','num_layers':3,'num_column':5,'num_row':8,'Frequencies': 
+[[4200000., 3900000., 4600000., 4400000., 4800000.],
+ [3700000., 1800000., 3200000., 1000000., 5000000.],
+ [3000000., 1900000., 2600000., 1200000., 1300000.],
+ [2200000., 3400000., 2100000., 2900000., 1600000.],
+ [3600000., 1700000., 2300000., 1400000., 4100000.],
+ [2800000., 2500000., 2000000., 2700000., 1500000.],
+ [3800000., 3100000., 3300000., 4700000., 2400000.],
+ [4000000., 4300000., 3500000., 4900000., 4500000.]],
+'ratio_division':None}, verify_array = {'via_pad_width':via_pad_width,'Ctype':'PPC','num_layers':3,'num_column':2,'num_row':2,'Frequencies':[[800000,700000],[600000,900000]],'ratio_division':None}, verify_array2 = {'via_pad_width':via_pad_width,'Ctype':'PPC','num_layers':3,'num_column':2,'num_row':2,'Frequencies':[[1000000,4000000],[3000000,2000000]],'ratio_division':None},verify_array3 = {'via_pad_width':via_pad_width,'Ctype':'PPC','num_layers':3,'num_column':4,'num_row':4,'Frequencies':[[2200000,1800000,2000000,2400000],[1000000,1200000,1600000,1400000],[1700000,1500000,1900000,1100000],[2500000,2300000,2100000,1300000]],'ratio_division':None,'cell_height':4000,'cell_width':2000})
+Chip.write_gds("../output/12_Chip_v_inv.gds")
+Chip
+# %%
 TestChip = newChip(4,'../logo/tsinghua logo large.gds',layer_order=[LAYER.GP, LAYER.TP,LAYER.E0,LAYER.D,LAYER.Bond0],distribution=[(1,1,90,'test_array'),(2,1,90,'test_array'),(2,2,90,'test_array'),(3,1,0,'test_array'),(3,2,0,'test_array'),(3,3,0,'test_array'),(3,4,0,'test_array'),(3,5,0,'test_array'),(3,6,0,'test_array'),(4,1,90,'test_array'),(4,2,90,'test_array'),(5,1,90,'test_array')],inverse=True,InverseArrayPaths={'test_array':'../output/TestArray_Inverse.gds'},ArrayFunctions={'test_array':TestArray},test_array={'via_pad_width':via_pad_width,'Ctype' : 'PPC','num_layers' : 3,'num_column' : 5,'num_row' : 8,'refix' : [0,460,0,0]})
 TestChip
 TestChip.write_gds("../output/TestChip_inverse.gds")
@@ -75,6 +119,9 @@ Array = newArray(via_pad_width,'PPC',3,5,8,[[4200000., 3900000., 4600000., 44000
  [2800000., 2500000., 2000000., 2700000., 1500000.],
  [3800000., 3100000., 3300000., 4700000., 2400000.],
  [4000000., 4300000., 3500000., 4900000., 4500000.]],None)
+Array
+# %%
+Array = growArray(via_pad_width,'PPC',3,2,2,[[800000,700000],[600000,900000]],None)
 Array
 # %%
 Chip = newChip(newCArray,4,'../logo/tsinghua logo large.gds',via_pad_width=via_pad_width,Ctype = 'PPC',num_layers = 3,num_column = 5,num_row = 8,Frequencies = 
@@ -221,7 +268,10 @@ LAYER
 #  [3800000., 3100000., 3300000., 4700000., 2400000.],
 #  [4000000., 4300000., 3500000., 4900000., 4500000.]],
 # ratio_division = None)
-Array = TestArray(via_pad_width,'PPC',3,5,8,[0,460,0,0])
+# Array = TestArray(via_pad_width,'PPC',3,5,8,[0,460,0,0])
+# Array = growArray(via_pad_width,Ctype='PPC',num_layers=3,num_column=2,num_row=2,Frequencies=[[800000,700000],[600000,900000]],ratio_division=None)
+# Array = growArray(via_pad_width,Ctype='PPC',num_layers=3,num_column=2,num_row=2,Frequencies=[[1000000,4000000],[3000000,2000000]],ratio_division=None)
+Array = growArray(via_pad_width,Ctype='PPC',num_layers=3,num_column=4,num_row=4,Frequencies=[[2200000,1800000,2000000,2400000],[1000000,1200000,1600000,1400000],[1700000,1500000,1900000,1100000],[2500000,2300000,2100000,1300000]],ratio_division=None,cell_height=4000,cell_width=2000)
 # Array
 Test = gf.Component()
 Array = Test << Array
@@ -307,4 +357,12 @@ for i, x in enumerate(dict2):
     print(i,x)
 
 
+# %%
+Test = gf.Component()
+outline = Test << gf.geometry.boolean(gf.geometry.offset(gf.components.rectangle(size=(5000, 10000)), distance=75, use_union=True, layer=LAYER.GP),gf.components.rectangle(size=(5000, 10000)),'A-B')
+outline2 = Test << gf.geometry.offset(gf.components.rectangle(size=(5000, 5000)), distance=75, use_union=False, layer=LAYER.GP)
+# outline = Test << gf.geometry.outline(gf.components.rectangle(size=(5000, 10000)), distance=75, layer=LAYER.GP, join_first=False)
+# outline2 = Test << gf.geometry.outline(gf.components.rectangle(size=(5000, 5000)), distance=75, layer=LAYER.GP)
+Test
+# %%
 # %%

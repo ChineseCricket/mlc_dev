@@ -1,25 +1,25 @@
 # THIS SCRIPT CONTAINS THE CLASSES USED IN THE GENERATION OF THE RESONATOR CHIP
 import numpy
 class Chip:
-    def __init__(self):
+    def __init__(self, chip_name='CHIP NAME', date='DATE', num_LC_rows=5, num_LC_cols=8, CellHeight=4000, CellWidth=2000, num_LCs=40, TL_width=10, wire_corner_radius=30, sumpad_gap=100, array_gap_x=2000, array_gap_y=2000, MarkerPosition=(-41300, 21300), MaskLabelPosition=(25000, 37000)):  
         #general information
-        self.name = "CHIP NAME"
-        self.date = "DATE"
+        self.name = chip_name
+        self.date = date
         #geometry
-        self.num_LC_rows = 5
-        self.num_LC_cols = 8
-        self.CellHeight = 4000
-        self.CellWidth = 2000
-        self.num_LCs = 40 
+        self.num_LC_rows = num_LC_rows
+        self.num_LC_cols = num_LC_cols
+        self.CellHeight = CellHeight
+        self.CellWidth = CellWidth
+        self.num_LCs = num_LCs
         #WIRING PARAMETERS
-        self.TL_width = 10 # width of transmission line
+        self.TL_width = TL_width # width of transmission line
         self.wire2wire_space = self.TL_width # space between wires
-        self.wire_corner_radius = 30 
-        self.sumpad_gap = 100 # wiring gap for the corners of the chip
-        self.array_gap_x = 2000 # gap between the array of LCs
-        self.array_gap_y = 2000 # gap between the array of LCs
-        self.MarkerPosition = (-41300, 21300) # position of center of alignment markers
-        self.MaskLabelPosition = (25000, 37000) # position of center of mask label
+        self.wire_corner_radius = wire_corner_radius 
+        self.sumpad_gap = sumpad_gap # wiring gap for the corners of the chip
+        self.array_gap_x = array_gap_x # gap between the array of LCs
+        self.array_gap_y = array_gap_y # gap between the array of LCs
+        self.MarkerPosition = MarkerPosition # position of center of alignment markers
+        self.MaskLabelPosition = MaskLabelPosition # position of center of mask label
         
 class PadClass:
     def __init__(self):
@@ -81,13 +81,15 @@ class ResonatorClass:
         self.total_height = height
 
 class ArrayClass:
-    def __init__(self, row_position, column_position, rotation, array_type='default_array', label=None):
+    def __init__(self, row_position, column_position, rotation, array_type='default_array', label=None, offsetx=0,offsety=0):
         self.row_position = row_position
         self.column_position = column_position
         self.rotation = rotation
         self.label = label
         self.note_font_size = 50
         self.array_type = array_type
+        self.offsetx = offsetx
+        self.offsety = offsety
 
 
 L = InductorClass(1)
